@@ -6,6 +6,7 @@
 
 import { Application } from 'pixi.js';
 import { Game } from './game/Game';
+import { initVisitorCounter } from './ui/VisitorCounter';
 import './style.css';
 
 function showFatal(err: unknown): void {
@@ -78,6 +79,9 @@ function showFatal(err: unknown): void {
 
     const game = new Game(app);
     await game.boot();
+
+    // Live visit counter in the main-menu footer (no-op in dev / for bots).
+    void initVisitorCounter();
   } catch (err) {
     showFatal(err);
   }

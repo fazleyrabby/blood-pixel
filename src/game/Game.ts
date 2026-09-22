@@ -63,6 +63,8 @@ import {
 
 const COUNTDOWN_SEC = 3;
 const FIRE_REQUEST_WINDOW = 0.3;
+/** Max zombie sprites torn down per simulation step (spreads mass-death cost). */
+const MAX_REMOVALS_PER_STEP = 24;
 
 export class Game {
   private app: Application;
@@ -134,6 +136,7 @@ export class Game {
     this.createCheatPanel();
 
     window.addEventListener('blur', this.onWindowBlur);
+    document.addEventListener('fullscreenchange', this.onFullscreenChange);
 
     this.exposeDebugApi();
 
@@ -170,6 +173,7 @@ export class Game {
     const tilt = s.depthTilt && !s.reducedMotion ? TILT_Y_SCALE : 1;
     this.camera.setYScale(tilt);
     this.charR.setTilt(tilt);
+    this.charR.setColorblind(s.colorblindMode);
     document.body.classList.toggle('high-contrast', s.highContrast);
     this.audio.setEnabled(s.soundEnabled);
     this.audio.setVolume(s.masterVolume);
@@ -364,6 +368,7 @@ export class Game {
       this.state.settings[key] = value;
       this.commit();
       if (key === 'crtEnabled') this.applyCrtSetting();
+      if (key === 'fullscreen') this.applyFullscreen();
       this.applyVisualSettings();
     };
 
@@ -484,6 +489,32 @@ export class Game {
 
   private onWindowBlur = (): void => {
     if (this.state.phase === 'PLAYING') this.pause();
+  };
+
+  /** Enter/exit browser fullscreen to match the setting. */
+  private applyFullscreen(): void {
+    const want = this.state.settings.fullscreen;
+    const isFs = document.fullscreenElement !== null;
+    if (want && !isFs) {
+      void document.documentElement.requestFullscreen?.().catch(() => {
+        // Denied (not a user gesture / unsupported) — revert the setting
+        this.state.settings.fullscreen = false;
+        this.commit();
+        this.screens.syncSettings(this.state.settings);
+      });
+    } else if (!want && isFs) {
+      void document.exitFullscreen?.().catch(() => { /* ignore */ });
+    }
+  }
+
+  /** Keep the setting in sync when the user leaves fullscreen (Esc / F11). */
+  private onFullscreenChange = (): void => {
+    const isFs = document.fullscreenElement !== null;
+    if (this.state.settings.fullscreen !== isFs) {
+      this.state.settings.fullscreen = isFs;
+      this.commit();
+      this.screens.syncSettings(this.state.settings);
+    }
   };
 
   // ──────────────────────────────────────────────
@@ -858,11 +889,15 @@ export class Game {
       if (zb.state === 'dead' && zb.deathTimer > 0) zb.deathTimer -= dt;
     }
 
-    // Sweep fully-dead zombies
-    for (let i = z.length - 1; i >= 0; i--) {
+    // Sweep fully-dead zombies. Bounded per step so a mass death (exploder
+    // chain, dev kill-all) can't stall a single frame — dead entities are
+    // already invisible and excluded from targeting/objectives.
+    let removed = 0;
+    for (let i = z.length - 1; i >= 0 && removed < MAX_REMOVALS_PER_STEP; i--) {
       if (z[i].state === 'dead' && z[i].deathTimer <= 0) {
         world.events.onZombieRemoved(z[i].id);
         z.splice(i, 1);
+        removed++;
       }
     }
 
@@ -1000,6 +1035,7 @@ export class Game {
       bossHp: st.bossHp,
       bossMaxHp: st.bossMaxHp,
       bossName: st.bossName,
+      reducedMotion: st.settings.reducedMotion,
     };
   }
 
@@ -1069,6 +1105,8 @@ export class Game {
       '<button class="cheat-btn" id="cheat-killall">KILL ALL</button>' +
       '<button class="cheat-btn" id="cheat-spawnboss">SPAWN BOSS</button>' +
       '<button class="cheat-btn" id="cheat-spawnwave">SPAWN MIXED WAVE</button>' +
+      '<button class="cheat-btn" id="cheat-stress">STRESS +100</button>' +
+      '<button class="cheat-btn" id="cheat-clear">CLEAR ENEMIES</button>' +
       '<button class="cheat-btn" id="cheat-skip">SKIP MISSION</button>' +
       '<button class="cheat-btn" id="cheat-die">KILL PLAYER</button>';
 
@@ -1076,7 +1114,8 @@ export class Game {
     style.textContent =
       '.cheat-btn{font-family:inherit;font-size:11px;color:#39ff14;background:#0d2a0d;' +
       'border:1px solid #1a3a1a;padding:5px 8px;cursor:pointer;text-align:left;letter-spacing:1px;}' +
-      '.cheat-btn:hover{background:#154015;border-color:#39ff14;}';
+      '.cheat-btn:hover{background:#154015;border-color:#39ff14;}' +
+      '.cheat-btn:focus-visible{outline:2px solid #39ff14;outline-offset:2px;}';
     document.head.appendChild(style);
 
     document.getElementById('ui-layer')!.appendChild(el);
@@ -1101,6 +1140,8 @@ export class Game {
       this.cheatSpawn('exploder', 2);
       this.cheatSpawn('spitter', 1);
     });
+    el.querySelector('#cheat-stress')!.addEventListener('click', () => this.cheatSpawn('walker', 100));
+    el.querySelector('#cheat-clear')!.addEventListener('click', () => this.clearEnemies());
     el.querySelector('#cheat-skip')!.addEventListener('click', () => this.cheatSkipMission());
     el.querySelector('#cheat-die')!.addEventListener('click', () => this.killPlayer());
   }
@@ -1197,6 +1238,18 @@ export class Game {
     }
   }
 
+  /** Dev tool: remove every enemy from the field (perf teardown). */
+  private clearEnemies(): void {
+    const w = this.world;
+    if (!w) return;
+    for (const z of [...w.zombies]) {
+      z.state = 'dead';
+      z.deathTimer = 0;
+      w.events.onZombieRemoved(z.id);
+    }
+    w.zombies.length = 0;
+  }
+
   private killPlayer(): void {
     const w = this.world;
     if (!w) return;
@@ -1240,6 +1293,8 @@ export class Game {
       killAll: () => self.killAll(),
       spawn: (type: ZombieType, count = 1) => self.cheatSpawn(type, count),
       spawnBoss: () => self.cheatSpawn('abomination', 1),
+      stress: (n = 100) => self.cheatSpawn('walker', n),
+      clearEnemies: () => self.clearEnemies(),
       killPlayer: () => self.killPlayer(),
       skipMission: () => self.cheatSkipMission(),
       overlay: () => self.toggleDevOverlay(),

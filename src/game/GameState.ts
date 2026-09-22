@@ -90,6 +90,7 @@ export interface GameSettings {
   reducedMotion: boolean;
   highContrast: boolean;
   depthTilt: boolean;
+  colorblindMode: boolean;
   fullscreen: boolean;
 }
 
@@ -109,6 +110,7 @@ export function defaultSettings(): GameSettings {
     reducedMotion: false,
     highContrast: false,
     depthTilt: true,
+    colorblindMode: false,
     fullscreen: false,
   };
 }

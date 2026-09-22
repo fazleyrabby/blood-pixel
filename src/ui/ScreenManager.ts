@@ -98,6 +98,14 @@ export class ScreenManager {
     this._buildVictory();
     this._buildSettings();
     this._buildStats();
+    // Escape backs out of informational screens (gameplay pause is handled by Game)
+    document.addEventListener('keydown', (e) => {
+      if (e.key !== 'Escape') return;
+      if (this.current === 'settings' || this.current === 'stats') {
+        e.preventDefault();
+        this.show('main-menu');
+      }
+    });
   }
 
   show(id: ScreenId): void {
@@ -250,6 +258,7 @@ export class ScreenManager {
         <button id="mm-stats" class="menu-btn">[ STATS ]</button>
         <button id="mm-settings" class="menu-btn">[ SETTINGS ]</button>
         <div class="menu-footer">PRESS ESC TO PAUSE DURING PLAY</div>
+        <div id="visitor-counter-mount" class="menu-counter"></div>
       </div>
     `;
     el.querySelector('#mm-play')!.addEventListener('click', () => this.onPlay?.());
@@ -429,6 +438,14 @@ export class ScreenManager {
           <label>High Contrast</label>
           <button id="setting-contrast" class="toggle-btn" data-key="highContrast">OFF</button>
         </div>
+        <div class="settings-row">
+          <label>Colorblind Mode</label>
+          <button id="setting-colorblind" class="toggle-btn" data-key="colorblindMode">OFF</button>
+        </div>
+        <div class="settings-row">
+          <label>Fullscreen</label>
+          <button id="setting-fullscreen" class="toggle-btn" data-key="fullscreen">OFF</button>
+        </div>
         <div class="settings-sep"></div>
         <button id="setting-reset" class="menu-btn danger">[ RESET PROGRESS ]</button>
         <button id="settings-close" class="menu-btn">[ CLOSE ]</button>
@@ -500,6 +517,8 @@ export class ScreenManager {
       'setting-motion': 'reducedMotion',
       'setting-contrast': 'highContrast',
       'setting-depth': 'depthTilt',
+      'setting-colorblind': 'colorblindMode',
+      'setting-fullscreen': 'fullscreen',
     };
     for (const [id, key] of Object.entries(map)) {
       const btn = document.getElementById(id);
@@ -736,6 +755,20 @@ export class ScreenManager {
       }
       .toggle-btn.off { color: #ff2222; background: #200000; }
       .volume-slider { width: 130px; accent-color: #39ff14; cursor: pointer; }
+
+      /* Keyboard accessibility */
+      .menu-btn:focus-visible,
+      .toggle-btn:focus-visible,
+      .upgrade-btn:focus-visible,
+      .mission-btn:focus-visible,
+      .volume-slider:focus-visible {
+        outline: 2px solid #39ff14;
+        outline-offset: 2px;
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .menu-title { animation: none; }
+        .menu-btn, .upgrade-btn, .toggle-btn { transition: none; }
+      }
 
       /* Stats */
       .stats-box { min-width: 460px; }

@@ -4,14 +4,20 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="description" content="BLOOD PIXEL — Top-down ASCII zombie shooter. Fight endless hordes in a brutal retro world." />
+    <meta name="theme-color" content="#060a06" />
+    <meta name="color-scheme" content="dark" />
+    <meta property="og:title" content="BLOOD PIXEL" />
+    <meta property="og:description" content="Top-down ASCII zombie shooter. Fight endless hordes in a brutal retro world." />
+    <meta property="og:type" content="website" />
     <title>BLOOD PIXEL</title>
+    <link rel="icon" type="image/svg+xml" href="./favicon.svg" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap" rel="stylesheet" />
     <link rel="stylesheet" href="/src/style.css" />
   </head>
   <body>
-    <div id="app">
+    <div id="app" role="application" aria-label="Blood Pixel game canvas">
       <div id="ui-layer"></div>
     </div>
     <script type="module" src="/src/main.ts"></script>

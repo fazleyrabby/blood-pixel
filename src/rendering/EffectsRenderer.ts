@@ -94,8 +94,14 @@ export class EffectsRenderer {
     maxSize: number,
     gravity: number,
   ): void {
-    for (let i = 0; i < count; i++) {
-      if (this.active.length >= MAX_ACTIVE) this._release(this.active.shift()!);
+    // Graceful degradation: when many bursts land in the same frame (e.g. a
+    // chain of exploder detonations) thin the spawn out instead of doing a
+    // large amount of graphics work in one tick.
+    const headroom = MAX_ACTIVE - this.active.length;
+    if (headroom <= 0) return;
+    const spawn = Math.min(count, headroom);
+
+    for (let i = 0; i < spawn; i++) {
       const angle = spread >= Math.PI * 2
         ? Math.random() * Math.PI * 2
         : -Math.PI / 2 + (Math.random() - 0.5) * spread;

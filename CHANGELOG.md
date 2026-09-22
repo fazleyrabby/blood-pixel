@@ -118,3 +118,32 @@ Format: `[Phase N] YYYY-MM-DD — Description`
 - ✅ New types render distinctly; boss bar + summons work; mission 15 boss objective live
 - ✅ Achievement unlock → results screen → save persistence verified
 - ✅ Damage vignette verified live (HP 92 → opacity 0.55)
+
+## [Phase 5] 2026-09-23 — Ship Prep (Performance, Deployment, Accessibility)
+
+### Added
+- **Live visitor counter** in the main-menu footer, backed by the homelab `view-counter` service (PM2 + SQLite, `views.fazleyrabbi.xyz`). Client guards for dev/local hosts, non-standard ports, bots/webdriver and Vercel preview deployments; `localStorage` cache with animated count. Project slug `bloodpixel`
+- **Fullscreen setting** — the toggle now actually enters/exits fullscreen, persists, and syncs when the user leaves fullscreen via Esc/F11
+- **`vercel.json`** — explicit Vite framework/build/output + cache headers (immutable `/assets/*`, revalidate otherwise)
+- **`npm run package`** — builds and zips `blood-pixel.zip` for static/itch.io hosting
+- **Colour-blind mode** setting — blue/yellow-axis enemy palette separated by lightness (`src/rendering/palette.ts`); cyan reserved for the player
+- **Keyboard focus rings** (`:focus-visible`) across menus, toggles, upgrade buttons, mission tiles, volume slider and cheat buttons; **Escape** closes the Settings/Stats screens
+- **Dev stress tooling** — `__bp.stress(n)`, `__bp.clearEnemies()`, cheat-panel STRESS +100 / CLEAR ENEMIES
+- **Tests** — 90 → **100**: enemy palette invariants, visitor-counter guards (dev/bot/preview)
+- `docs/phase-5.md`
+
+### Changed
+- `vite.config.ts` sets `base: './'` so the build works from any sub-path
+- `index.html` gains the `favicon.svg` link, theme-color, `color-scheme`, OG tags and `role="application"`
+
+### Fixed
+- **233 ms frame hitch on mass death** — four fixes: tint writes are now cached per sprite instead of rewriting every glyph cell each frame; damage-number `TextStyle`s are shared and concurrent numbers capped at 48 (oldest recycled/destroyed); dead-sprite teardown is bounded to 24 per step; SFX have per-cue cooldowns so a mass kill can't create hundreds of Web Audio voices in one frame. Worst frame on a 459-enemy mass detonation: **233 ms → 17.8 ms**
+- **Elite spitters were tinted identically to normal spitters**, making elites invisible for that type (caught by the new palette test)
+- **`favicon.ico` 404** in the console — the page now declares `favicon.svg`
+- Reduced motion now also disables the low-HP vignette pulse and damage flash; CSS honours `prefers-reduced-motion`
+
+### Exit Gate Status
+- ✅ TypeScript clean; `npm run build` succeeds; **100/100 tests pass**
+- ✅ 459 enemies and a 459-enemy mass detonation both hold ~60 fps (worst frame < 18 ms)
+- ✅ Fullscreen + colour-blind toggles verified in-browser; counter reaches the live API
+- ✅ 0 console errors

@@ -14,6 +14,7 @@ import { Container, Graphics, Text, TextStyle } from 'pixi.js';
 import { GlyphAtlas, type GlyphAtlasOptions } from './GlyphAtlas';
 import { AsciiSprite } from './AsciiRenderer';
 import { depthScale, depthSortKey } from './depth';
+import { enemyTint, type EnemyPalette } from './palette';
 import type { PlayerEntity } from '../entities/Player';
 import type { ZombieEntity } from '../entities/Zombie';
 import type { ProjectileEntity } from '../entities/Projectile';
@@ -82,28 +83,8 @@ const TYPE_SCALE: Record<string, number> = {
 const Z_OVERLAY = 1e7;
 const Z_PROJECTILE = 1e6;
 const Z_SHADOW_OFFSET = -0.5;
-
-const BASE_TINTS: Record<string, number> = {
-  walker: 0x39ff14,
-  runner: 0xff8844,
-  brute: 0xdd2222,
-  spitter: 0xcc44ff,
-  crawler: 0x99ff33,
-  armored: 0x8899aa,
-  exploder: 0xff5522,
-  abomination: 0xcc0022,
-};
-
-const ELITE_TINTS: Record<string, number> = {
-  walker: 0xff4444,
-  runner: 0xff8800,
-  brute: 0xff2266,
-  spitter: 0xcc44ff,
-  crawler: 0xffee44,
-  armored: 0xffddaa,
-  exploder: 0xffaa22,
-  abomination: 0xff2266,
-};
+/** Concurrent floating damage numbers (older ones are recycled). */
+const MAX_DAMAGE_NUMBERS = 48;
 
 const PICKUP_GLYPHS: Record<string, string> = {
   health: '❤',
@@ -135,11 +116,18 @@ export class CharacterRenderer {
 
   // Damage numbers pool
   private damageNumbers: Array<{ text: Text; timer: number; vy: number }> = [];
+  /** Shared styles — creating a TextStyle per number is very costly at scale. */
+  private dmgStyles = new Map<boolean, TextStyle>();
 
   // Pseudo-3D presentation
   private tilt = 1;
   private worldW = 1200;
   private worldH = 900;
+
+  /** Colour-blind-safe enemy palette toggle. */
+  private palette: EnemyPalette = 'default';
+  /** Last tint written per zombie — avoids 20 redundant writes per sprite/frame. */
+  private lastTint = new Map<number, number>();
 
   constructor(atlasOpts: GlyphAtlasOptions = {}) {
     // White glyph base so per-entity tints control hue exactly.
@@ -163,6 +151,14 @@ export class CharacterRenderer {
     this.worldH = height;
   }
 
+  /** Switch enemy tints to a colour-blind-safe palette. */
+  setColorblind(on: boolean): void {
+    const next: EnemyPalette = on ? 'colorblind' : 'default';
+    if (next === this.palette) return;
+    this.palette = next;
+    this.lastTint.clear(); // force a refresh on the next update
+  }
+
   initPlayer(player: PlayerEntity): void {
     if (this.playerSprite) this.container.removeChild(this.playerSprite);
     if (this.playerShadow) this.container.removeChild(this.playerShadow);
@@ -173,7 +169,7 @@ export class CharacterRenderer {
 
   addZombie(zombie: ZombieEntity): void {
     const frames = this._framesForType(zombie.type);
-    const sprite = new AsciiSprite(this.atlas, { frames, tint: BASE_TINTS[zombie.type] ?? 0x39ff14 });
+    const sprite = new AsciiSprite(this.atlas, { frames, tint: enemyTint(zombie.type, zombie.elite, this.palette) });
     const shadow = this._makeShadow();
     this.zombieSprites.set(zombie.id, sprite);
     this.zombieShadows.set(zombie.id, shadow);
@@ -187,6 +183,7 @@ export class CharacterRenderer {
     const sh = this.zombieShadows.get(id);
     if (sh) { this.container.removeChild(sh); this.zombieShadows.delete(id); }
     this.animTimers.delete(id);
+    this.lastTint.delete(id);
   }
 
   addProjectile(proj: ProjectileEntity): void {
@@ -221,18 +218,34 @@ export class CharacterRenderer {
   }
 
   showDamageNumber(worldX: number, worldY: number, amount: number, isPlayer = false): void {
-    const style = new TextStyle({
-      fontFamily: "'Share Tech Mono', monospace",
-      fontSize: 13,
-      fill: isPlayer ? 0xff4444 : 0xffff44,
-    });
-    const t = new Text({ text: `-${Math.round(amount)}`, style });
+    // Cap concurrent numbers so a mass-damage frame can't create hundreds of
+    // Text objects (each bakes its own canvas texture).
+    while (this.damageNumbers.length >= MAX_DAMAGE_NUMBERS) {
+      const oldest = this.damageNumbers.shift()!;
+      this.container.removeChild(oldest.text);
+      oldest.text.destroy();
+    }
+
+    const t = new Text({ text: `-${Math.round(amount)}`, style: this._dmgStyle(isPlayer) });
     t.x = worldX;
     t.y = worldY;
     t.scale.y = 1 / this.tilt;
     t.zIndex = Z_OVERLAY;
     this.container.addChild(t);
     this.damageNumbers.push({ text: t, timer: 0.8, vy: -60 });
+  }
+
+  private _dmgStyle(isPlayer: boolean): TextStyle {
+    let style = this.dmgStyles.get(isPlayer);
+    if (!style) {
+      style = new TextStyle({
+        fontFamily: "'Share Tech Mono', monospace",
+        fontSize: 13,
+        fill: isPlayer ? 0xff4444 : 0xffff44,
+      });
+      this.dmgStyles.set(isPlayer, style);
+    }
+    return style;
   }
 
   showMuzzleFlash(worldX: number, worldY: number, angle: number): void {
@@ -313,11 +326,12 @@ export class CharacterRenderer {
         shadow.alpha = spr.alpha * 0.5;
       }
 
-      // Hit flash overrides, then special-state telegraphs, then base tint
-      if (zombie.hitFlashTimer > 0) {
-        spr.setTint(0xffffff);
-      } else {
-        spr.setTint(this._tintFor(zombie));
+      // Hit flash overrides, then special-state telegraphs, then base tint.
+      // Only write when it actually changes (avoids per-cell churn at scale).
+      const tint = zombie.hitFlashTimer > 0 ? 0xffffff : this._tintFor(zombie);
+      if (this.lastTint.get(zombie.id) !== tint) {
+        spr.setTint(tint);
+        this.lastTint.set(zombie.id, tint);
       }
 
       const timer = (this.animTimers.get(zombie.id) ?? 0) + dt;
@@ -348,6 +362,7 @@ export class CharacterRenderer {
       dn.text.alpha = Math.max(0, dn.timer / 0.8);
       if (dn.timer <= 0) {
         this.container.removeChild(dn.text);
+        dn.text.destroy();
         this.damageNumbers.splice(i, 1);
       }
     }
@@ -402,8 +417,7 @@ export class CharacterRenderer {
       if (zombie.chargePhase === 'charge') return 0xff6622;
     }
     if (zombie.type === 'runner' && zombie.specialTimer > 0) return 0xffee44;
-    if (zombie.elite) return ELITE_TINTS[zombie.type] ?? 0xff4444;
-    return BASE_TINTS[zombie.type] ?? 0x39ff14;
+    return enemyTint(zombie.type, zombie.elite, this.palette);
   }
 
   private _framesForType(type: string): string[][] {
@@ -431,7 +445,11 @@ export class CharacterRenderer {
     for (const [, t] of this.pickupTexts) this.container.removeChild(t);
     this.pickupTexts.clear();
     this.animTimers.clear();
-    for (const dn of this.damageNumbers) this.container.removeChild(dn.text);
+    this.lastTint.clear();
+    for (const dn of this.damageNumbers) {
+      this.container.removeChild(dn.text);
+      dn.text.destroy();
+    }
     this.damageNumbers = [];
     this.muzzleFlash.clear();
     this.muzzleFlashTimer = 0;

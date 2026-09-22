@@ -73,6 +73,82 @@ body.high-contrast #app {
   mix-blend-mode: multiply;
 }
 
+/* ── Visitor counter (main menu footer) ── */
+.menu-counter {
+  display: flex;
+  justify-content: center;
+  margin-top: 2px;
+}
+
+.visitor-counter {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 12px;
+  border: 1px solid var(--color-dim);
+  background: rgba(0, 0, 0, 0.5);
+  color: var(--color-green);
+  font-size: 12px;
+  line-height: 1.2;
+  white-space: nowrap;
+  user-select: none;
+  letter-spacing: 1px;
+}
+
+.visitor-counter__pulse {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 8px;
+  height: 8px;
+}
+
+.visitor-counter__ping {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  border-radius: 9999px;
+  background: var(--color-green);
+  opacity: 0.7;
+  animation: visitorPing 2.2s cubic-bezier(0, 0, 0.2, 1) infinite;
+}
+
+.visitor-counter__core {
+  position: relative;
+  width: 6px;
+  height: 6px;
+  border-radius: 9999px;
+  background: var(--color-green);
+  box-shadow: 0 0 6px rgba(57, 255, 20, 0.7);
+}
+
+.visitor-counter__label {
+  font-size: 10px;
+  color: var(--color-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+}
+
+.visitor-counter__count {
+  min-width: 2ch;
+  color: var(--color-green);
+  text-shadow: 0 0 8px rgba(57, 255, 20, 0.5);
+}
+
+@keyframes visitorPing {
+  75%,
+  100% {
+    transform: scale(2.5);
+    opacity: 0;
+  }
+}
+
+/* Respect reduced-motion for the counter pulse */
+@media (prefers-reduced-motion: reduce) {
+  .visitor-counter__ping { animation: none; }
+}
+
 /* ── Small viewport warning ── */
 #viewport-warning {
   display: none;

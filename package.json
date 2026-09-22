@@ -7,7 +7,8 @@
     "dev": "vite",
     "build": "tsc && vite build",
     "preview": "vite preview",
-    "test": "vitest run"
+    "test": "vitest run",
+    "package": "npm run build && cd dist && zip -qr ../blood-pixel.zip . && echo 'Built blood-pixel.zip'"
   },
   "devDependencies": {
     "typescript": "~6.0.2",

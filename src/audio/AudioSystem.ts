@@ -9,6 +9,17 @@
  * Phase 3 — Game Feel, Combat Depth & Depth Tilt
  */
 
+/** Minimum seconds between repeats of a cue (undefined = unthrottled). */
+const CUE_COOLDOWN: Partial<Record<SfxName, number>> = {
+  hit: 0.03,
+  kill: 0.045,
+  acid: 0.06,
+  explode: 0.08,
+  boss_summon: 0.2,
+  dry: 0.1,
+  ui: 0.03,
+};
+
 export type SfxName =
   | 'shot_pistol'
   | 'shot_shotgun'
@@ -56,6 +67,9 @@ export class AudioSystem {
   private enabled = true;
   private volume = 0.7;
   private muted = false;
+
+  /** Per-cue throttle so a mass event can't create hundreds of nodes in one frame. */
+  private lastPlayed = new Map<SfxName, number>();
 
   private ambient: { o1: OscillatorNode; o2: OscillatorNode; lfo: OscillatorNode; gain: GainNode } | null = null;
 
@@ -170,6 +184,16 @@ export class AudioSystem {
   play(name: SfxName): void {
     if (!this.enabled || this.muted) return;
     if (!this.ctx || !this.master) return;
+
+    // Throttle high-frequency cues (kills/hits/explosions) — a single frame can
+    // otherwise trigger hundreds of simultaneous oscillator+noise voices.
+    const cooldown = CUE_COOLDOWN[name];
+    if (cooldown !== undefined) {
+      const now = this.ctx.currentTime;
+      const last = this.lastPlayed.get(name);
+      if (last !== undefined && now - last < cooldown) return;
+      this.lastPlayed.set(name, now);
+    }
 
     switch (name) {
       case 'shot_pistol':

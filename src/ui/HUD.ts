@@ -27,6 +27,7 @@ export interface HUDData {
   bossHp: number;
   bossMaxHp: number;
   bossName: string;
+  reducedMotion: boolean;
 }
 
 export class HUD {
@@ -136,10 +137,12 @@ export class HUD {
       const now = performance.now();
       let opacity = 0;
       if (hpPct < 0.25) {
-        const pulse = 0.5 + 0.5 * Math.sin(now / 260);
-        opacity = 0.1 + 0.16 * pulse;
+        // Static under reduced motion; gentle pulse otherwise
+        opacity = data.reducedMotion ? 0.16 : 0.1 + 0.16 * (0.5 + 0.5 * Math.sin(now / 260));
       }
-      if (now < this.damageFlashUntil) opacity = Math.max(opacity, 0.55);
+      if (!data.reducedMotion && now < this.damageFlashUntil) {
+        opacity = Math.max(opacity, 0.55);
+      }
       vig.style.opacity = opacity.toFixed(3);
     }
   }

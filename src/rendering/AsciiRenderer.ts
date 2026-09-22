@@ -81,6 +81,9 @@ export class AsciiSprite extends Container {
 
   get currentFrame(): number { return this._frameIndex; }
 
+  /** Current tint — lets callers skip redundant `setTint` work. */
+  get tint(): number { return this._tint; }
+
   get glyphWidth(): number {
     const lines = this.frames[this._frameIndex];
     return Math.max(...lines.map(l => l.length)) * this.atlas.cellW;
