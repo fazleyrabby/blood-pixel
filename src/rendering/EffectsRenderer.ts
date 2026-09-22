@@ -8,9 +8,12 @@
  */
 
 import { Container, Graphics } from 'pixi.js';
+import { projectGround, type ProjectionView } from './projection';
 
 interface Particle {
   g: Graphics;
+  x: number;
+  y: number;
   vx: number;
   vy: number;
   life: number;
@@ -30,6 +33,9 @@ export class EffectsRenderer {
   readonly container: Container;
   private pool: Graphics[] = [];
   private active: Particle[] = [];
+  private projection: ProjectionView | null = null;
+
+  setProjection(view: ProjectionView | null): void { this.projection = view; }
 
   constructor() {
     this.container = new Container();
@@ -63,8 +69,12 @@ export class EffectsRenderer {
       p.vx *= damp;
       p.vy *= damp;
       p.vy += p.gravity * dt;
-      p.g.x += p.vx * dt;
-      p.g.y += p.vy * dt;
+      p.x += p.vx * dt;
+      p.y += p.vy * dt;
+      const point = this.projection ? projectGround(p.x, p.y, this.projection) : null;
+      p.g.x = point?.x ?? p.x;
+      p.g.y = point?.y ?? p.y;
+      p.g.scale.set(point?.scale ?? 1);
       p.g.alpha = Math.max(0, p.life / p.maxLife);
     }
   }
@@ -113,13 +123,18 @@ export class EffectsRenderer {
       g.clear();
       g.rect(-size / 2, -size / 2, size, size);
       g.fill({ color });
-      g.x = x + (Math.random() - 0.5) * 6;
-      g.y = y + (Math.random() - 0.5) * 6;
+      const px = x + (Math.random() - 0.5) * 6;
+      const py = y + (Math.random() - 0.5) * 6;
+      const point = this.projection ? projectGround(px, py, this.projection) : null;
+      g.x = point?.x ?? px;
+      g.y = point?.y ?? py;
       g.alpha = 1;
 
       const life = 0.35 + Math.random() * 0.45;
       this.active.push({
         g,
+        x: px,
+        y: py,
         vx: Math.cos(angle) * spd,
         vy: Math.sin(angle) * spd - speed * 0.25,
         life,

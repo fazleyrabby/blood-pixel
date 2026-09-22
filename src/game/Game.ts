@@ -156,6 +156,7 @@ export class Game {
     this.camera.setShakeEnabled(s.screenShake && !s.reducedMotion);
     const tilt = s.depthTilt && !s.reducedMotion ? TILT_Y_SCALE : 1;
     this.camera.setYScale(tilt);
+    this.camera.setPerspectiveFocal(tilt < 1 ? 2800 : null);
     this.scene.setTilt(tilt);
     this.scene.setColorblind(s.colorblindMode);
     this.applyCrtSetting();

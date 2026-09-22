@@ -11,6 +11,7 @@ import { ArenaRenderer } from './ArenaRenderer';
 import { CharacterRenderer } from './CharacterRenderer';
 import { EffectsRenderer } from './EffectsRenderer';
 import { CRTFilter } from './CRTFilter';
+import type { ProjectionView } from './projection';
 
 /** Existing Pixi scene, gathered behind one boundary without changing draw order. */
 export class PixiSceneRenderer implements SceneRenderer {
@@ -25,6 +26,8 @@ export class PixiSceneRenderer implements SceneRenderer {
     vignette: 0.55,
     chromatic: 0.6,
   });
+  private activeArena: ArenaDef | null = null;
+  private projection: ProjectionView | null = null;
 
   constructor(app: Application) {
     this.app = app;
@@ -33,6 +36,7 @@ export class PixiSceneRenderer implements SceneRenderer {
   }
 
   buildArena(arena: ArenaDef, player: PlayerEntity): void {
+    this.activeArena = arena;
     this.arena.buildArena(arena);
     this.effects.clear();
     this.characters.clear();
@@ -61,7 +65,18 @@ export class PixiSceneRenderer implements SceneRenderer {
   }
   spawnAcid(x: number, y: number, count: number): void { this.effects.spawnAcid(x, y, count); }
   spawnExplosion(x: number, y: number, count: number): void { this.effects.spawnExplosion(x, y, count); }
-  applyCamera(camera: Camera): void { camera.applyToContainer(this.container); }
+  applyCamera(camera: Camera): void {
+    this.projection = camera.focalLength === null ? null : camera.projectionView();
+    if (this.projection) {
+      this.container.position.set(0, 0);
+      this.container.scale.set(1);
+      if (this.activeArena) this.arena.drawPerspective(this.activeArena, this.projection);
+    } else {
+      camera.applyToContainer(this.container);
+    }
+    this.characters.setProjection(this.projection);
+    this.effects.setProjection(this.projection);
+  }
   resize(_width: number, _height: number): void { /* Pixi Application owns the canvas size. */ }
   update(dt: number, world: World | null): void {
     if (world) {

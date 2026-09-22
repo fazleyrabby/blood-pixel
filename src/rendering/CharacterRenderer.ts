@@ -15,6 +15,7 @@ import { GlyphAtlas, type GlyphAtlasOptions } from './GlyphAtlas';
 import { AsciiSprite } from './AsciiRenderer';
 import { depthScale, depthSortKey } from './depth';
 import { enemyTint, type EnemyPalette } from './palette';
+import { projectGround, type ProjectionView } from './projection';
 import type { PlayerEntity } from '../entities/Player';
 import type { ZombieEntity } from '../entities/Zombie';
 import type { ProjectileEntity } from '../entities/Projectile';
@@ -123,6 +124,9 @@ export class CharacterRenderer {
   private tilt = 1;
   private worldW = 1200;
   private worldH = 900;
+  private projection: ProjectionView | null = null;
+
+  setProjection(view: ProjectionView | null): void { this.projection = view; }
 
   /** Colour-blind-safe enemy palette toggle. */
   private palette: EnemyPalette = 'default';
@@ -227,9 +231,11 @@ export class CharacterRenderer {
     }
 
     const t = new Text({ text: `-${Math.round(amount)}`, style: this._dmgStyle(isPlayer) });
-    t.x = worldX;
-    t.y = worldY;
-    t.scale.y = 1 / this.tilt;
+    const point = this.projection ? projectGround(worldX, worldY, this.projection) : null;
+    t.x = point?.x ?? worldX;
+    t.y = (point?.y ?? worldY) - (point ? 26 * point.scale : 0);
+    t.scale.y = point ? point.scale : 1 / this.tilt;
+    if (point) t.scale.x = point.scale;
     t.zIndex = Z_OVERLAY;
     this.container.addChild(t);
     this.damageNumbers.push({ text: t, timer: 0.8, vy: -60 });
@@ -252,8 +258,9 @@ export class CharacterRenderer {
     const f = this.muzzleFlash;
     f.clear();
 
-    const ox = worldX + Math.cos(angle) * 8;
-    const oy = worldY + Math.sin(angle) * 8;
+    const point = this.projection ? projectGround(worldX, worldY, this.projection) : null;
+    const ox = (point?.x ?? worldX) + Math.cos(angle) * 8;
+    const oy = (point?.y ?? worldY) - (point ? 18 * point.scale : 0) + Math.sin(angle) * 8;
 
     // Core glow
     f.circle(ox, oy, 7);
@@ -276,14 +283,16 @@ export class CharacterRenderer {
   update(dt: number, player: PlayerEntity, zombies: ZombieEntity[]): void {
     // ── Player ──
     if (this.playerSprite) {
-      const ds = depthScale(player.y, this.worldH);
-      this.playerSprite.scale.set(ds, ds / this.tilt);
-      this.playerSprite.x = player.x - (this.playerSprite.glyphWidth * ds) / 2;
-      this.playerSprite.y = player.y - (this.playerSprite.glyphHeight * this.playerSprite.scale.y) / 2;
+      const point = this.projection ? projectGround(player.x, player.y, this.projection) : null;
+      const ds = point ? point.scale : depthScale(player.y, this.worldH);
+      this.playerSprite.scale.set(ds, point ? ds : ds / this.tilt);
+      this.playerSprite.x = (point?.x ?? player.x) - (this.playerSprite.glyphWidth * ds) / 2;
+      this.playerSprite.y = point ? point.y - this.playerSprite.glyphHeight * ds :
+        player.y - (this.playerSprite.glyphHeight * this.playerSprite.scale.y) / 2;
       this.playerSprite.zIndex = depthSortKey(player.y);
 
       this._placeShadow(
-        this.playerShadow, player.x, player.y, 16 * ds,
+        this.playerShadow, point?.x ?? player.x, point?.y ?? player.y, 16 * ds,
         this.playerSprite.glyphHeight * this.playerSprite.scale.y,
         player.y,
       );
@@ -305,10 +314,11 @@ export class CharacterRenderer {
       const spr = this.zombieSprites.get(zombie.id);
       if (!spr) continue;
 
-      const ds = depthScale(zombie.y, this.worldH) * ZOMBIE_SCALE * (TYPE_SCALE[zombie.type] ?? 1);
-      spr.scale.set(ds, ds / this.tilt);
-      spr.x = zombie.x - (spr.glyphWidth * ds) / 2;
-      spr.y = zombie.y - (spr.glyphHeight * spr.scale.y) / 2;
+      const point = this.projection ? projectGround(zombie.x, zombie.y, this.projection) : null;
+      const ds = (point ? point.scale : depthScale(zombie.y, this.worldH)) * ZOMBIE_SCALE * (TYPE_SCALE[zombie.type] ?? 1);
+      spr.scale.set(ds, point ? ds : ds / this.tilt);
+      spr.x = (point?.x ?? zombie.x) - (spr.glyphWidth * ds) / 2;
+      spr.y = point ? point.y - spr.glyphHeight * ds : zombie.y - (spr.glyphHeight * spr.scale.y) / 2;
       spr.zIndex = depthSortKey(zombie.y);
       spr.alpha = zombie.state === 'spawning'
         ? Math.min(1, 1 - zombie.spawnTimer / 0.3)
@@ -319,7 +329,7 @@ export class CharacterRenderer {
       const shadow = this.zombieShadows.get(zombie.id);
       if (shadow) {
         this._placeShadow(
-          shadow, zombie.x, zombie.y,
+          shadow, point?.x ?? zombie.x, point?.y ?? zombie.y,
           zombie.collisionRadius * 1.35 * (ds / ZOMBIE_SCALE),
           spr.glyphHeight * spr.scale.y, zombie.y,
         );
@@ -371,8 +381,10 @@ export class CharacterRenderer {
   updateProjectilePosition(proj: ProjectileEntity): void {
     const g = this.projectileGraphics.get(proj.id);
     if (g) {
-      g.x = proj.x;
-      g.y = proj.y;
+      const point = this.projection ? projectGround(proj.x, proj.y, this.projection) : null;
+      g.x = point?.x ?? proj.x;
+      g.y = point ? point.y - 8 * point.scale : proj.y;
+      g.scale.set(point?.scale ?? 1);
       g.zIndex = Z_PROJECTILE + proj.y;
     }
   }
@@ -380,9 +392,10 @@ export class CharacterRenderer {
   updatePickupPosition(pickup: PickupEntity): void {
     const t = this.pickupTexts.get(pickup.id);
     if (t) {
-      t.x = pickup.x - 9;
-      t.y = pickup.y - 9;
-      t.scale.y = 1 / this.tilt;
+      const point = this.projection ? projectGround(pickup.x, pickup.y, this.projection) : null;
+      t.x = (point?.x ?? pickup.x) - 9;
+      t.y = (point?.y ?? pickup.y) - 9;
+      t.scale.set(point?.scale ?? 1, point?.scale ?? 1 / this.tilt);
       t.zIndex = depthSortKey(pickup.y) - 0.2;
       t.alpha = pickup.blinking ? (Math.floor(Date.now() / 200) % 2 === 0 ? 0.3 : 1) : 1;
     }
@@ -397,8 +410,8 @@ export class CharacterRenderer {
     sortY: number,
   ): void {
     shadow.x = x;
-    shadow.y = y + spriteHeight * 0.4;
-    shadow.scale.set(radiusX, (radiusX * 0.42) / this.tilt);
+    shadow.y = this.projection ? y : y + spriteHeight * 0.4;
+    shadow.scale.set(radiusX, this.projection ? radiusX * 0.28 : (radiusX * 0.42) / this.tilt);
     shadow.zIndex = sortY + Z_SHADOW_OFFSET;
   }
 

@@ -8,6 +8,7 @@
 import { Container, Graphics, Text, TextStyle } from 'pixi.js';
 import type { ArenaDef } from '../config/arenas';
 import type { PlayerEntity } from '../entities/Player';
+import { projectGround, projectHeight, type ProjectionView } from './projection';
 
 export class ArenaRenderer {
   readonly container: Container;
@@ -77,6 +78,61 @@ export class ArenaRenderer {
         // Building / factory — taller block with windows on the front face
         this._drawBlock(obs.x, obs.y, obs.width, obs.height, shade(arena.wallColor, 1.5), 28, obs.width > 80);
       }
+    }
+  }
+
+  /** Screen-space perspective plane, converging grid, and raised obstacles. */
+  drawPerspective(arena: ArenaDef, view: ProjectionView): void {
+    this.ground.clear();
+    this.walls.clear();
+    const W = arena.worldWidth;
+    const H = arena.worldHeight;
+    const p = (x: number, y: number) => projectGround(x, y, view);
+    const farLeft = p(0, 0), farRight = p(W, 0);
+    const nearLeft = p(0, H), nearRight = p(W, H);
+
+    // A slow parallax horizon behind the ground plane.
+    const horizonY = view.screenH * 0.08 + (view.cameraY - H / 2) * 0.035;
+    this.ground.rect(0, 0, view.screenW, view.screenH);
+    this.ground.fill({ color: 0x030807 });
+    for (let i = 0; i < 18; i++) {
+      const x = i * 90 - ((view.cameraX * 0.08) % 90);
+      const h = 22 + ((i * 37) % 64);
+      this.ground.rect(x, horizonY - h, 62, h);
+      this.ground.fill({ color: i % 3 === 0 ? 0x0a1715 : 0x09110e });
+    }
+    this.ground.moveTo(farLeft.x, farLeft.y).lineTo(farRight.x, farRight.y)
+      .lineTo(nearRight.x, nearRight.y).lineTo(nearLeft.x, nearLeft.y).closePath();
+    this.ground.fill({ color: shade(arena.groundColor, 1.7) });
+    for (let x = 0; x <= W; x += 64) {
+      const a = p(x, 0), b = p(x, H);
+      this.ground.moveTo(a.x, a.y).lineTo(b.x, b.y);
+    }
+    for (let y = 0; y <= H; y += 64) {
+      const a = p(0, y), b = p(W, y);
+      this.ground.moveTo(a.x, a.y).lineTo(b.x, b.y);
+    }
+    this.ground.stroke({ color: shade(arena.groundColor, 4), width: 1, alpha: 0.65 });
+    this.ground.moveTo(farLeft.x, farLeft.y).lineTo(farRight.x, farRight.y)
+      .lineTo(nearRight.x, nearRight.y).lineTo(nearLeft.x, nearLeft.y).closePath();
+    this.ground.stroke({ color: 0x2b6947, width: 2 });
+
+    for (const obs of arena.obstacles) {
+      const height = obs.label?.startsWith('tree') ? 72 : obs.label?.startsWith('pillar') ? 54 :
+        obs.label?.startsWith('rock') ? 20 : obs.label?.startsWith('container') ? 38 : 46;
+      const a = projectHeight(obs.x, obs.y, height, view);
+      const b = projectHeight(obs.x + obs.width, obs.y, height, view);
+      const c = projectHeight(obs.x + obs.width, obs.y + obs.height, height, view);
+      const d = projectHeight(obs.x, obs.y + obs.height, height, view);
+      const frontL = p(obs.x, obs.y + obs.height);
+      const frontR = p(obs.x + obs.width, obs.y + obs.height);
+      this.walls.moveTo(d.x, d.y).lineTo(c.x, c.y).lineTo(frontR.x, frontR.y)
+        .lineTo(frontL.x, frontL.y).closePath();
+      this.walls.fill({ color: shade(arena.wallColor, 0.7) });
+      this.walls.moveTo(a.x, a.y).lineTo(b.x, b.y).lineTo(c.x, c.y).lineTo(d.x, d.y).closePath();
+      this.walls.fill({ color: shade(arena.wallColor, 2.6) });
+      this.walls.moveTo(a.x, a.y).lineTo(b.x, b.y).lineTo(c.x, c.y).lineTo(d.x, d.y).closePath();
+      this.walls.stroke({ color: 0x396b49, width: 1.5 });
     }
   }
 

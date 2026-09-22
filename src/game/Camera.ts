@@ -14,6 +14,7 @@ export interface CameraBounds {
   width: number;
   height: number;
 }
+import { projectGround, unprojectGround } from '../rendering/projection';
 
 export class Camera {
   /** World-space position of the camera center */
@@ -36,6 +37,7 @@ export class Camera {
 
   /** Vertical compression for the tilted view. 1 = flat top-down. */
   private yScale = 1;
+  private perspectiveFocal: number | null = null;
 
   // ── Screen shake ──
   private shakeEnabled = true;
@@ -58,6 +60,11 @@ export class Camera {
   get tilt(): number {
     return this.yScale;
   }
+
+  setPerspectiveFocal(value: number | null): void { this.perspectiveFocal = value; }
+  get focalLength(): number | null { return this.perspectiveFocal; }
+  get width(): number { return this.screenW; }
+  get height(): number { return this.screenH; }
 
   setShakeEnabled(value: boolean): void {
     this.shakeEnabled = value;
@@ -144,6 +151,7 @@ export class Camera {
 
   /** Convert world position to screen position */
   worldToScreen(wx: number, wy: number): { x: number; y: number } {
+    if (this.perspectiveFocal !== null) return projectGround(wx, wy, this.projectionView());
     return {
       x: wx - this.x + this.screenW / 2 + this.shakeX,
       y: (wy - this.y) * this.yScale + this.screenH / 2 + this.shakeY,
@@ -152,6 +160,7 @@ export class Camera {
 
   /** Convert screen position to world position */
   screenToWorld(sx: number, sy: number): { x: number; y: number } {
+    if (this.perspectiveFocal !== null) return unprojectGround(sx, sy, this.projectionView());
     return {
       x: sx - this.screenW / 2 + this.x - this.shakeX,
       y: (sy - this.screenH / 2 - this.shakeY) / this.yScale + this.y,
@@ -163,5 +172,10 @@ export class Camera {
     container.x = this.screenW / 2 - this.x + this.shakeX;
     container.y = this.screenH / 2 - this.y * this.yScale + this.shakeY;
     container.scale.y = this.yScale;
+  }
+
+  projectionView() {
+    return { cameraX: this.x, cameraY: this.y, screenW: this.screenW, screenH: this.screenH,
+      tilt: this.yScale, focalLength: this.perspectiveFocal ?? 2800, shakeX: this.shakeX, shakeY: this.shakeY };
   }
 }
