@@ -1,6 +1,6 @@
 # Renderer experiments — September 2026
 
-The live `main` branch remains the ASCII game. `backup/ascii-phase-5` preserves the Phase 5 build and renderer boundary. The experiments are separate branches.
+The original ASCII `main` tip is preserved on `ascii` (`7a5d0e4`). `backup/ascii-phase-5` preserves Phase 5 and the renderer boundary (`3e0aed1`). After the voxel direction was selected, the voxel build was fast-forwarded to `main`; both experiments remain on their separate branches.
 
 | | Pixi perspective sprite (`spike/2.5d-sprite`) | Voxel world (`spike/voxel-3d`) |
 |---|---|---|
@@ -11,9 +11,9 @@ The live `main` branch remains the ASCII game. `backup/ascii-phase-5` preserves 
 
 ## Recommendation
 
-Continue with the voxel branch. It matches the chosen ruined-world direction, and the latest browser stress sample stayed under the 20 ms target. Keep `main` as the untouched ASCII backup until the voxel build is approved for a later integration. The voxel branch is playable; it is not a finished art-production pass.
+Continue developing the voxel build on `main`. It matches the chosen ruined-world direction, and the latest browser stress sample stayed under the 20 ms target. The `ascii` branch keeps the original game available. The voxel build is playable; it is not a finished art-production pass.
 
-## What is in the voxel branch
+## What is in the voxel build
 
 - `V` switches between overhead and first person. The key is latched and debounced. First person has a held weapon and centered reticle.
 - Cohesive voxel survivor and all eight zombie types are generated once as visible-face geometry and drawn as instanced meshes.
