@@ -260,6 +260,7 @@ export class Game {
     this.sm.register('PAUSED', {
       onEnter: () => {
         this.input.setGameActive(false);
+        this.setCanvasCursor(true);
         this.showPause(true);
       },
       onExit: () => this.showPause(false),
@@ -298,7 +299,9 @@ export class Game {
   }
 
   private setCanvasCursor(show: boolean): void {
-    this.app.canvas.style.cursor = show ? 'auto' : 'none';
+    const visible = show || this.cheatPanel?.style.display === 'flex';
+    document.getElementById('app')?.classList.toggle('hide-system-cursor', !visible);
+    this.app.canvas.style.cursor = visible ? 'auto' : 'none';
   }
 
   // ──────────────────────────────────────────────
@@ -1162,6 +1165,7 @@ export class Game {
     if (!this.cheatPanel) return;
     const show = this.cheatPanel.style.display === 'none';
     this.cheatPanel.style.display = show ? 'flex' : 'none';
+    this.setCanvasCursor(this.state.phase !== 'COUNTDOWN' && this.state.phase !== 'PLAYING');
     if (show) this.syncCheatButtons();
   }
 

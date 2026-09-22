@@ -35,6 +35,11 @@ html, body {
   overflow: hidden;
 }
 
+#app.hide-system-cursor,
+#app.hide-system-cursor * {
+  cursor: none !important;
+}
+
 #game-canvas {
   position: absolute;
   top: 0;
