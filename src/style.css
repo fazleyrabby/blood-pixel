@@ -1,0 +1,96 @@
+/* ===================================================
+   BLOOD PIXEL — Global Styles
+   =================================================== */
+
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+:root {
+  --color-bg: #060a06;
+  --color-green: #39ff14;
+  --color-red: #ff2222;
+  --color-amber: #ffaa00;
+  --color-dim: #1a2a1a;
+  --color-muted: #5a7a5a;
+  --font-mono: 'Share Tech Mono', 'Courier New', monospace;
+}
+
+html, body {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background: var(--color-bg);
+  font-family: var(--font-mono);
+  color: var(--color-green);
+  user-select: none;
+}
+
+#app {
+  position: relative;
+  width: 100vw;
+  height: 100vh;
+  overflow: hidden;
+}
+
+#game-canvas {
+  position: absolute;
+  top: 0;
+  left: 0;
+  display: block;
+}
+
+#ui-layer {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+/* High Contrast setting (Settings → High Contrast) */
+body.high-contrast #app {
+  filter: contrast(1.25) brightness(1.12) saturate(1.15);
+}
+
+/* Scanline overlay (CRT effect via CSS, GLSL handles per-pixel) */
+#ui-layer::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 2px,
+    rgba(0, 0, 0, 0.08) 2px,
+    rgba(0, 0, 0, 0.08) 4px
+  );
+  pointer-events: none;
+  z-index: 1000;
+  mix-blend-mode: multiply;
+}
+
+/* ── Small viewport warning ── */
+#viewport-warning {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: var(--color-bg);
+  color: var(--color-amber);
+  font-size: 1.1rem;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  text-align: center;
+  z-index: 9999;
+  padding: 2rem;
+}
+
+@media (max-width: 1023px), (max-height: 639px) {
+  #viewport-warning { display: flex; }
+  #app { display: none; }
+}

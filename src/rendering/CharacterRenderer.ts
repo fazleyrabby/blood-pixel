@@ -1,0 +1,443 @@
+/**
+ * CharacterRenderer.ts
+ * Renders all game entities as ASCII sprites on a tilted ground plane.
+ *
+ * Phase 3 additions:
+ *  - Y-sorted sprites (painter's algorithm) → objects overlap correctly
+ *  - Ground shadow ellipses under every entity
+ *  - Depth-based scale falloff (nearer = larger)
+ *  - Sprite Y-scale compensation so glyphs stay unsquashed while the world
+ *    plane is compressed by the camera tilt
+ */
+
+import { Container, Graphics, Text, TextStyle } from 'pixi.js';
+import { GlyphAtlas, type GlyphAtlasOptions } from './GlyphAtlas';
+import { AsciiSprite } from './AsciiRenderer';
+import { depthScale, depthSortKey } from './depth';
+import type { PlayerEntity } from '../entities/Player';
+import type { ZombieEntity } from '../entities/Zombie';
+import type { ProjectileEntity } from '../entities/Projectile';
+import type { PickupEntity } from '../entities/Pickup';
+
+// ── Glyph Definitions ──
+
+const PLAYER_FRAMES: string[][] = [
+  ['  @  ', ' /|\\ ', ' / \\ '],
+  ['  @  ', ' \\|/ ', ' / \\ '],
+  ['  @  ', ' /|\\ ', ' \\ / '],
+];
+
+const WALKER_FRAMES: string[][] = [
+  [' ███ ', '█x x█', ' █▀█ ', '▄███▄'],
+  [' ███ ', '█• •█', ' █▄█ ', '▄▄█▄▄'],
+];
+
+const RUNNER_FRAMES: string[][] = [
+  [' ▄█▄ ', '█• •█', ' ▄█▄ ', '  /  '],
+  [' ▄█▄ ', '█• •█', ' ▄█▄ ', '  \\  '],
+];
+
+const BRUTE_FRAMES: string[][] = [
+  ['  █████  ', '███● ●███', '███████▀█', '  ███████'],
+  ['  █████  ', '███o o███', '███████▄█', '  ███████'],
+];
+
+const SPITTER_FRAMES: string[][] = [
+  [' ███ ', '█~ ~█', ' ▀█▀ ', ' ▄█▄ '],
+  [' ███ ', '█≈ ≈█', ' ▀█▀ ', ' ▄█▄ '],
+];
+
+const CRAWLER_FRAMES: string[][] = [
+  [' ▄ ', '▄█▄', ' ▀ '],
+  [' ▄ ', '▄•▄', ' ▀ '],
+];
+
+const ARMORED_FRAMES: string[][] = [
+  [' █████ ', '██■ ■██', '███████', ' █████ '],
+  [' █████ ', '██■ ■██', '███████', ' █▀▀▀█ '],
+];
+
+const EXPLODER_FRAMES: string[][] = [
+  [' ▄█▄ ', '█● ●█', '█▀▀▀█', ' ▀█▀ '],
+  [' ▄█▄ ', '█o o█', '█▄▄▄█', ' ▀█▀ '],
+];
+
+const ABOMINATION_FRAMES: string[][] = [
+  ['   ███████   ', ' ███▀▀▀▀▀███ ', '███ ●   ● ███', '█████████████', ' ███████████ ', '  ███   ███  '],
+  ['   ███████   ', ' ███▀▀▀▀▀███ ', '███ o   o ███', '█████████████', ' ███████████ ', '  ███   ███  '],
+];
+
+// Zombie visual scale (collision radii unchanged — presentation only)
+const ZOMBIE_SCALE = 0.85;
+
+/** Per-type size multipliers so silhouettes read differently. */
+const TYPE_SCALE: Record<string, number> = {
+  crawler: 0.62,
+  armored: 1.0,
+  exploder: 0.92,
+  abomination: 1.9,
+};
+
+// Render layers (zIndex)
+const Z_OVERLAY = 1e7;
+const Z_PROJECTILE = 1e6;
+const Z_SHADOW_OFFSET = -0.5;
+
+const BASE_TINTS: Record<string, number> = {
+  walker: 0x39ff14,
+  runner: 0xff8844,
+  brute: 0xdd2222,
+  spitter: 0xcc44ff,
+  crawler: 0x99ff33,
+  armored: 0x8899aa,
+  exploder: 0xff5522,
+  abomination: 0xcc0022,
+};
+
+const ELITE_TINTS: Record<string, number> = {
+  walker: 0xff4444,
+  runner: 0xff8800,
+  brute: 0xff2266,
+  spitter: 0xcc44ff,
+  crawler: 0xffee44,
+  armored: 0xffddaa,
+  exploder: 0xffaa22,
+  abomination: 0xff2266,
+};
+
+const PICKUP_GLYPHS: Record<string, string> = {
+  health: '❤',
+  ammo: '■',
+  bonusXp: '★',
+};
+
+const PICKUP_TINTS: Record<string, number> = {
+  health: 0xff4444,
+  ammo: 0xffaa00,
+  bonusXp: 0xffff00,
+};
+
+export class CharacterRenderer {
+  private atlas: GlyphAtlas;
+  readonly container: Container;
+
+  private playerSprite!: AsciiSprite;
+  private playerShadow!: Graphics;
+  private zombieSprites = new Map<number, AsciiSprite>();
+  private zombieShadows = new Map<number, Graphics>();
+  private projectileGraphics = new Map<number, Graphics>();
+  private pickupTexts = new Map<number, Text>();
+  private animTimers = new Map<number, number>();
+
+  // Muzzle flash
+  private muzzleFlash: Graphics;
+  private muzzleFlashTimer = 0;
+
+  // Damage numbers pool
+  private damageNumbers: Array<{ text: Text; timer: number; vy: number }> = [];
+
+  // Pseudo-3D presentation
+  private tilt = 1;
+  private worldW = 1200;
+  private worldH = 900;
+
+  constructor(atlasOpts: GlyphAtlasOptions = {}) {
+    // White glyph base so per-entity tints control hue exactly.
+    this.atlas = new GlyphAtlas({ fontSize: 14, color: '#ffffff', ...atlasOpts });
+    this.container = new Container();
+    this.container.sortableChildren = true;
+
+    this.muzzleFlash = new Graphics();
+    this.muzzleFlash.zIndex = Z_OVERLAY;
+    this.container.addChild(this.muzzleFlash);
+  }
+
+  /** Camera tilt factor (1 = flat top-down). Sprites compensate to stay square. */
+  setTilt(tilt: number): void {
+    this.tilt = tilt > 0 ? tilt : 1;
+  }
+
+  /** Arena dimensions — used for the depth-based scale falloff. */
+  setArenaSize(width: number, height: number): void {
+    this.worldW = width;
+    this.worldH = height;
+  }
+
+  initPlayer(player: PlayerEntity): void {
+    if (this.playerSprite) this.container.removeChild(this.playerSprite);
+    if (this.playerShadow) this.container.removeChild(this.playerShadow);
+    this.playerSprite = new AsciiSprite(this.atlas, { frames: PLAYER_FRAMES, tint: 0x00ffff });
+    this.playerShadow = this._makeShadow();
+    this.container.addChild(this.playerShadow, this.playerSprite);
+  }
+
+  addZombie(zombie: ZombieEntity): void {
+    const frames = this._framesForType(zombie.type);
+    const sprite = new AsciiSprite(this.atlas, { frames, tint: BASE_TINTS[zombie.type] ?? 0x39ff14 });
+    const shadow = this._makeShadow();
+    this.zombieSprites.set(zombie.id, sprite);
+    this.zombieShadows.set(zombie.id, shadow);
+    this.animTimers.set(zombie.id, 0);
+    this.container.addChild(shadow, sprite);
+  }
+
+  removeZombie(id: number): void {
+    const spr = this.zombieSprites.get(id);
+    if (spr) { this.container.removeChild(spr); this.zombieSprites.delete(id); }
+    const sh = this.zombieShadows.get(id);
+    if (sh) { this.container.removeChild(sh); this.zombieShadows.delete(id); }
+    this.animTimers.delete(id);
+  }
+
+  addProjectile(proj: ProjectileEntity): void {
+    const g = new Graphics();
+    const color = proj.owner === 'player' ? 0xffff88 : 0x44ff44;
+    g.circle(0, 0, proj.owner === 'spitter' ? 5 : 3);
+    g.fill({ color });
+    g.zIndex = Z_PROJECTILE;
+    this.projectileGraphics.set(proj.id, g);
+    this.container.addChild(g);
+  }
+
+  removeProjectile(id: number): void {
+    const g = this.projectileGraphics.get(id);
+    if (g) { this.container.removeChild(g); this.projectileGraphics.delete(id); }
+  }
+
+  addPickup(pickup: PickupEntity): void {
+    const style = new TextStyle({
+      fontFamily: "'Share Tech Mono', monospace",
+      fontSize: 18,
+      fill: PICKUP_TINTS[pickup.pickupType] ?? 0xffffff,
+    });
+    const t = new Text({ text: PICKUP_GLYPHS[pickup.pickupType] ?? '?', style });
+    this.pickupTexts.set(pickup.id, t);
+    this.container.addChild(t);
+  }
+
+  removePickup(id: number): void {
+    const t = this.pickupTexts.get(id);
+    if (t) { this.container.removeChild(t); this.pickupTexts.delete(id); }
+  }
+
+  showDamageNumber(worldX: number, worldY: number, amount: number, isPlayer = false): void {
+    const style = new TextStyle({
+      fontFamily: "'Share Tech Mono', monospace",
+      fontSize: 13,
+      fill: isPlayer ? 0xff4444 : 0xffff44,
+    });
+    const t = new Text({ text: `-${Math.round(amount)}`, style });
+    t.x = worldX;
+    t.y = worldY;
+    t.scale.y = 1 / this.tilt;
+    t.zIndex = Z_OVERLAY;
+    this.container.addChild(t);
+    this.damageNumbers.push({ text: t, timer: 0.8, vy: -60 });
+  }
+
+  showMuzzleFlash(worldX: number, worldY: number, angle: number): void {
+    const f = this.muzzleFlash;
+    f.clear();
+
+    const ox = worldX + Math.cos(angle) * 8;
+    const oy = worldY + Math.sin(angle) * 8;
+
+    // Core glow
+    f.circle(ox, oy, 7);
+    f.fill({ color: 0xffaa33, alpha: 0.35 });
+    f.circle(ox, oy, 3.5);
+    f.fill({ color: 0xffffcc });
+
+    // Star rays
+    const spread = [0, 0.32, -0.32];
+    const lens = [20, 11, 11];
+    for (let i = 0; i < spread.length; i++) {
+      const a = angle + spread[i];
+      f.moveTo(ox, oy);
+      f.lineTo(ox + Math.cos(a) * lens[i], oy + Math.sin(a) * lens[i]);
+      f.stroke({ color: 0xffff88, width: i === 0 ? 3 : 2, alpha: 0.9 });
+    }
+    this.muzzleFlashTimer = 0.07;
+  }
+
+  update(dt: number, player: PlayerEntity, zombies: ZombieEntity[]): void {
+    // ── Player ──
+    if (this.playerSprite) {
+      const ds = depthScale(player.y, this.worldH);
+      this.playerSprite.scale.set(ds, ds / this.tilt);
+      this.playerSprite.x = player.x - (this.playerSprite.glyphWidth * ds) / 2;
+      this.playerSprite.y = player.y - (this.playerSprite.glyphHeight * this.playerSprite.scale.y) / 2;
+      this.playerSprite.zIndex = depthSortKey(player.y);
+
+      this._placeShadow(
+        this.playerShadow, player.x, player.y, 16 * ds,
+        this.playerSprite.glyphHeight * this.playerSprite.scale.y,
+        player.y,
+      );
+
+      const pt = (this.animTimers.get(-1) ?? 0) + dt;
+      this.animTimers.set(-1, pt);
+      if (pt > 0.18) {
+        this.animTimers.set(-1, 0);
+        const nextFrame = (this.playerSprite.currentFrame + 1) % PLAYER_FRAMES.length;
+        this.playerSprite.showFrame(nextFrame);
+      }
+
+      this.playerSprite.alpha =
+        (player.invulnerableTimer > 0 && Math.floor(player.invulnerableTimer * 10) % 2 === 0) ? 0.3 : 1;
+    }
+
+    // ── Zombies ──
+    for (const zombie of zombies) {
+      const spr = this.zombieSprites.get(zombie.id);
+      if (!spr) continue;
+
+      const ds = depthScale(zombie.y, this.worldH) * ZOMBIE_SCALE * (TYPE_SCALE[zombie.type] ?? 1);
+      spr.scale.set(ds, ds / this.tilt);
+      spr.x = zombie.x - (spr.glyphWidth * ds) / 2;
+      spr.y = zombie.y - (spr.glyphHeight * spr.scale.y) / 2;
+      spr.zIndex = depthSortKey(zombie.y);
+      spr.alpha = zombie.state === 'spawning'
+        ? Math.min(1, 1 - zombie.spawnTimer / 0.3)
+        : zombie.state === 'dead'
+          ? Math.max(0, zombie.deathTimer / 0.35)
+          : 1;
+
+      const shadow = this.zombieShadows.get(zombie.id);
+      if (shadow) {
+        this._placeShadow(
+          shadow, zombie.x, zombie.y,
+          zombie.collisionRadius * 1.35 * (ds / ZOMBIE_SCALE),
+          spr.glyphHeight * spr.scale.y, zombie.y,
+        );
+        shadow.alpha = spr.alpha * 0.5;
+      }
+
+      // Hit flash overrides, then special-state telegraphs, then base tint
+      if (zombie.hitFlashTimer > 0) {
+        spr.setTint(0xffffff);
+      } else {
+        spr.setTint(this._tintFor(zombie));
+      }
+
+      const timer = (this.animTimers.get(zombie.id) ?? 0) + dt;
+      this.animTimers.set(zombie.id, timer);
+      const frameDur = zombie.type === 'runner' || zombie.type === 'crawler'
+        ? 0.12
+        : zombie.type === 'abomination'
+          ? 0.4
+          : 0.22;
+      if (timer > frameDur) {
+        this.animTimers.set(zombie.id, 0);
+        const frames = this._framesForType(zombie.type);
+        spr.showFrame((spr.currentFrame + 1) % frames.length);
+      }
+    }
+
+    // ── Muzzle flash ──
+    if (this.muzzleFlashTimer > 0) {
+      this.muzzleFlashTimer -= dt;
+      if (this.muzzleFlashTimer <= 0) this.muzzleFlash.clear();
+    }
+
+    // ── Damage numbers ──
+    for (let i = this.damageNumbers.length - 1; i >= 0; i--) {
+      const dn = this.damageNumbers[i];
+      dn.timer -= dt;
+      dn.text.y += dn.vy * dt;
+      dn.text.alpha = Math.max(0, dn.timer / 0.8);
+      if (dn.timer <= 0) {
+        this.container.removeChild(dn.text);
+        this.damageNumbers.splice(i, 1);
+      }
+    }
+  }
+
+  updateProjectilePosition(proj: ProjectileEntity): void {
+    const g = this.projectileGraphics.get(proj.id);
+    if (g) {
+      g.x = proj.x;
+      g.y = proj.y;
+      g.zIndex = Z_PROJECTILE + proj.y;
+    }
+  }
+
+  updatePickupPosition(pickup: PickupEntity): void {
+    const t = this.pickupTexts.get(pickup.id);
+    if (t) {
+      t.x = pickup.x - 9;
+      t.y = pickup.y - 9;
+      t.scale.y = 1 / this.tilt;
+      t.zIndex = depthSortKey(pickup.y) - 0.2;
+      t.alpha = pickup.blinking ? (Math.floor(Date.now() / 200) % 2 === 0 ? 0.3 : 1) : 1;
+    }
+  }
+
+  private _placeShadow(
+    shadow: Graphics,
+    x: number,
+    y: number,
+    radiusX: number,
+    spriteHeight: number,
+    sortY: number,
+  ): void {
+    shadow.x = x;
+    shadow.y = y + spriteHeight * 0.4;
+    shadow.scale.set(radiusX, (radiusX * 0.42) / this.tilt);
+    shadow.zIndex = sortY + Z_SHADOW_OFFSET;
+  }
+
+  private _makeShadow(): Graphics {
+    const g = new Graphics();
+    g.ellipse(0, 0, 1, 1);
+    g.fill({ color: 0x000000, alpha: 0.42 });
+    return g;
+  }
+
+  private _tintFor(zombie: ZombieEntity): number {
+    if (zombie.type === 'brute') {
+      if (zombie.chargePhase === 'windup') {
+        return Math.floor(Date.now() / 80) % 2 === 0 ? 0xffff66 : 0xffaa00;
+      }
+      if (zombie.chargePhase === 'charge') return 0xff6622;
+    }
+    if (zombie.type === 'runner' && zombie.specialTimer > 0) return 0xffee44;
+    if (zombie.elite) return ELITE_TINTS[zombie.type] ?? 0xff4444;
+    return BASE_TINTS[zombie.type] ?? 0x39ff14;
+  }
+
+  private _framesForType(type: string): string[][] {
+    switch (type) {
+      case 'walker': return WALKER_FRAMES;
+      case 'runner': return RUNNER_FRAMES;
+      case 'brute': return BRUTE_FRAMES;
+      case 'spitter': return SPITTER_FRAMES;
+      case 'crawler': return CRAWLER_FRAMES;
+      case 'armored': return ARMORED_FRAMES;
+      case 'exploder': return EXPLODER_FRAMES;
+      case 'abomination': return ABOMINATION_FRAMES;
+      default: return WALKER_FRAMES;
+    }
+  }
+
+  /** Remove all entity sprites (mission restart). Keeps atlas + player. */
+  clear(): void {
+    for (const [, spr] of this.zombieSprites) this.container.removeChild(spr);
+    this.zombieSprites.clear();
+    for (const [, sh] of this.zombieShadows) this.container.removeChild(sh);
+    this.zombieShadows.clear();
+    for (const [, g] of this.projectileGraphics) this.container.removeChild(g);
+    this.projectileGraphics.clear();
+    for (const [, t] of this.pickupTexts) this.container.removeChild(t);
+    this.pickupTexts.clear();
+    this.animTimers.clear();
+    for (const dn of this.damageNumbers) this.container.removeChild(dn.text);
+    this.damageNumbers = [];
+    this.muzzleFlash.clear();
+    this.muzzleFlashTimer = 0;
+  }
+
+  destroy(): void {
+    this.atlas.destroy();
+  }
+}
