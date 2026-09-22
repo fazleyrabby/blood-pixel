@@ -6,7 +6,7 @@
  * Phase 2 — Vertical Slice (playable Mission 1 end-to-end)
  */
 
-import { Application, Container, Filter } from 'pixi.js';
+import type { Application } from 'pixi.js';
 import { Camera } from './Camera';
 import { GameLoop } from './GameLoop';
 import { StateMachine } from './StateMachine';
@@ -37,10 +37,8 @@ import {
 import { createPlayer, type PlayerEntity } from '../entities/Player';
 import { createZombie, type ZombieEntity } from '../entities/Zombie';
 import { ZOMBIES, type ZombieType } from '../config/zombies';
-import { CharacterRenderer } from '../rendering/CharacterRenderer';
-import { ArenaRenderer } from '../rendering/ArenaRenderer';
-import { EffectsRenderer } from '../rendering/EffectsRenderer';
-import { CRTFilter } from '../rendering/CRTFilter';
+import { createSceneRenderer } from '../rendering/PixiSceneRenderer';
+import type { SceneRenderer } from '../rendering/SceneRenderer';
 import { TILT_Y_SCALE } from '../rendering/depth';
 import { AudioSystem } from '../audio/AudioSystem';
 import { evaluateAchievements, achievementById, ACHIEVEMENTS } from '../config/achievements';
@@ -75,11 +73,7 @@ export class Game {
   private camera = new Camera();
   private loop: GameLoop | null = null;
 
-  private worldContainer = new Container();
-  private arenaRenderer = new ArenaRenderer();
-  private fx = new EffectsRenderer();
-  private charR: CharacterRenderer;
-  private crt: CRTFilter;
+  private scene: SceneRenderer;
   private audio = new AudioSystem();
   private hud: HUD;
   private screens: ScreenManager;
@@ -105,13 +99,7 @@ export class Game {
   constructor(app: Application) {
     this.app = app;
     this.state = createGameState();
-    this.charR = new CharacterRenderer();
-    this.crt = new CRTFilter({
-      scanlineIntensity: 0.5,
-      noiseIntensity: 0.35,
-      vignette: 0.55,
-      chromatic: 0.6,
-    });
+    this.scene = createSceneRenderer(app);
 
     const uiLayer = document.getElementById('ui-layer')!;
     this.hud = new HUD(uiLayer);
@@ -123,9 +111,6 @@ export class Game {
   // ──────────────────────────────────────────────
 
   async boot(): Promise<void> {
-    const stage = this.app.stage;
-    this.worldContainer.addChild(this.arenaRenderer.container, this.fx.container, this.charR.container);
-    stage.addChild(this.worldContainer);
     this.applyCrtSetting();
 
     this.loadSaveIntoState();
@@ -167,13 +152,13 @@ export class Game {
   /** Apply settings that affect rendering/camera immediately. */
   private applyVisualSettings(): void {
     const s = this.state.settings;
-    this.crt.noiseIntensity = s.dithering ? 0.35 : 0;
     this.camera.setSmoothing(s.reducedMotion ? 0 : 8);
     this.camera.setShakeEnabled(s.screenShake && !s.reducedMotion);
     const tilt = s.depthTilt && !s.reducedMotion ? TILT_Y_SCALE : 1;
     this.camera.setYScale(tilt);
-    this.charR.setTilt(tilt);
-    this.charR.setColorblind(s.colorblindMode);
+    this.scene.setTilt(tilt);
+    this.scene.setColorblind(s.colorblindMode);
+    this.applyCrtSetting();
     document.body.classList.toggle('high-contrast', s.highContrast);
     this.audio.setEnabled(s.soundEnabled);
     this.audio.setVolume(s.masterVolume);
@@ -440,7 +425,7 @@ export class Game {
   }
 
   private applyCrtSetting(): void {
-    this.app.stage.filters = this.state.settings.crtEnabled ? [this.crt as Filter] : [];
+    this.scene.setCrt(this.state.settings.crtEnabled, this.state.settings.dithering);
   }
 
   // ──────────────────────────────────────────────
@@ -588,11 +573,7 @@ export class Game {
     };
 
     // Rendering reset
-    this.arenaRenderer.buildArena(arena);
-    this.fx.clear();
-    this.charR.clear();
-    this.charR.setArenaSize(arena.worldWidth, arena.worldHeight);
-    this.charR.initPlayer(player);
+    this.scene.buildArena(arena, player);
     this.camera.setBounds({ x: 0, y: 0, width: arena.worldWidth, height: arena.worldHeight });
     this.camera.x = player.x;
     this.camera.y = player.y;
@@ -609,16 +590,16 @@ export class Game {
 
   private makeEvents(): World['events'] {
     return {
-      onZombieSpawned: (z) => this.charR.addZombie(z),
-      onZombieRemoved: (id) => this.charR.removeZombie(id),
-      onProjectileSpawned: (p) => this.charR.addProjectile(p),
-      onProjectileRemoved: (id) => this.charR.removeProjectile(id),
-      onPickupSpawned: (pk) => this.charR.addPickup(pk),
-      onPickupRemoved: (id) => this.charR.removePickup(id),
+      onZombieSpawned: (z) => this.scene.addZombie(z),
+      onZombieRemoved: (id) => this.scene.removeZombie(id),
+      onProjectileSpawned: (p) => this.scene.addProjectile(p),
+      onProjectileRemoved: (id) => this.scene.removeProjectile(id),
+      onPickupSpawned: (pk) => this.scene.addPickup(pk),
+      onPickupRemoved: (id) => this.scene.removePickup(id),
       onFired: (angle, weaponId) => {
         const p = this.player;
         if (!p) return;
-        this.charR.showMuzzleFlash(p.x, p.y, angle);
+        this.scene.showMuzzleFlash(p.x, p.y, angle);
         this.audio.play(
           weaponId === 'shotgun' ? 'shot_shotgun' : weaponId === 'smg' ? 'shot_smg' : 'shot_pistol',
         );
@@ -626,22 +607,22 @@ export class Game {
       },
       onDamageNumber: (x, y, amount, isPlayer) => {
         if (this.state.settings.damageNumbers) {
-          this.charR.showDamageNumber(x, y, amount, isPlayer);
+          this.scene.showDamageNumber(x, y, amount, isPlayer);
         }
       },
       onZombieHit: (x, y) => {
-        this.fx.spawnBlood(x, y, 4);
+        this.scene.spawnBlood(x, y, 4);
         this.audio.play('hit');
       },
       onPlayerHurt: () => {
         this.addShake(9, 0.3);
         this.audio.play('hurt');
         this.hud.flashDamage();
-        if (this.player) this.fx.spawnBlood(this.player.x, this.player.y, 9);
+        if (this.player) this.scene.spawnBlood(this.player.x, this.player.y, 9);
         this.requestHitStop(0.06);
       },
       onZombieKilled: (z) => {
-        this.fx.spawnBlood(z.x, z.y, 13, 130, 190);
+        this.scene.spawnBlood(z.x, z.y, 13, 130, 190);
         this.audio.play('kill');
         this.addShake(1.4, 0.1);
         this.requestHitStop(0.03);
@@ -652,7 +633,7 @@ export class Game {
         this.audio.play('death');
       },
       onAcidSplash: (x, y) => {
-        this.fx.spawnAcid(x, y, 7);
+        this.scene.spawnAcid(x, y, 7);
         this.audio.play('acid');
       },
       onReloadStarted: () => this.audio.play('reload_start'),
@@ -663,12 +644,12 @@ export class Game {
         this.hud.showBanner(`LEVEL ${level}`, '#ffff44');
       },
       onExplosion: (x, y) => {
-        this.fx.spawnExplosion(x, y, 24);
+        this.scene.spawnExplosion(x, y, 24);
         this.audio.play('explode');
         this.addShake(8, 0.28);
       },
       onBossSummon: (x, y) => {
-        this.fx.spawnExplosion(x, y, 14);
+        this.scene.spawnExplosion(x, y, 14);
         this.audio.play('boss_summon');
         this.addShake(5, 0.3);
       },
@@ -945,6 +926,7 @@ export class Game {
   private render = (_alpha: number, dt: number): void => {
     // Keep camera screen size in sync (logical pixels — handles resize)
     this.camera.setScreenSize(this.app.screen.width, this.app.screen.height);
+    this.scene.resize(this.app.screen.width, this.app.screen.height);
 
     // FPS estimate for the dev overlay
     if (dt > 0) this.fpsEma += ((1 / dt) - this.fpsEma) * 0.08;
@@ -955,12 +937,8 @@ export class Game {
       if (phase === 'COUNTDOWN' || phase === 'PLAYING' || phase === 'PAUSED') {
         this.camera.follow(world.player.x, world.player.y);
         this.camera.update(dt);
-        this.camera.applyToContainer(this.worldContainer);
-
-        this.charR.update(dt, world.player, world.zombies);
-        for (const p of world.projectiles) this.charR.updateProjectilePosition(p);
-        for (const p of world.pickups) this.charR.updatePickupPosition(p);
-        this.fx.update(dt);
+        this.scene.applyCamera(this.camera);
+        this.scene.update(dt, world);
 
         if (this.hudVisible()) {
           this.hud.update(this.buildHudData());
@@ -970,7 +948,7 @@ export class Game {
     }
 
     this.updateDevOverlay(dt);
-    this.crt.update(dt);
+    if (!world || !this.hudVisible()) this.scene.update(dt, null);
   };
 
   private hudVisible(): boolean {
