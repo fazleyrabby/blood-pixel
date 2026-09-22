@@ -24,6 +24,9 @@ export interface InputState {
   mutePressed: boolean;
   debugToggle: boolean;
   cheatPanelPressed: boolean;
+  viewPressed: boolean;
+  firstPerson: boolean;
+  hybridPressed: boolean;
 }
 
 export class InputSystem {
@@ -38,9 +41,15 @@ export class InputSystem {
     mutePressed: false,
     debugToggle: false,
     cheatPanelPressed: false,
+    viewPressed: false,
+    firstPerson: false,
+    hybridPressed: false,
   };
 
   private _gameActive = false;
+  private _viewHeld = false;
+  private _hybridHeld = false;
+  private _lastViewToggle = -Infinity;
 
   constructor() {
     window.addEventListener('keydown', this._onKeyDown);
@@ -70,6 +79,8 @@ export class InputSystem {
     this.state.mutePressed = false;
     this.state.debugToggle = false;
     this.state.cheatPanelPressed = false;
+    this.state.viewPressed = false;
+    this.state.hybridPressed = false;
   }
 
   destroy(): void {
@@ -95,6 +106,20 @@ export class InputSystem {
     if (e.key === 'F2') { e.preventDefault(); this.state.cheatPanelPressed = true; return; }
     if (e.key === 'm' || e.key === 'M') { this.state.mutePressed = true; }
     if (!this._gameActive) return;
+    if (e.key === 'v' || e.key === 'V') {
+      const now = performance.now();
+      if (!this._viewHeld && !e.repeat && now - this._lastViewToggle > 280) {
+        this.state.viewPressed = true;
+        this._lastViewToggle = now;
+      }
+      this._viewHeld = true;
+      return;
+    }
+    if (e.key === 'h' || e.key === 'H') {
+      if (!this._hybridHeld) this.state.hybridPressed = true;
+      this._hybridHeld = true;
+      return;
+    }
     switch (e.key.toLowerCase()) {
       case 'w': case 'arrowup': this.state.up = true; break;
       case 's': case 'arrowdown': this.state.down = true; break;
@@ -108,6 +133,8 @@ export class InputSystem {
   };
 
   private _onKeyUp = (e: KeyboardEvent): void => {
+    if (e.key === 'v' || e.key === 'V') this._viewHeld = false;
+    if (e.key === 'h' || e.key === 'H') this._hybridHeld = false;
     switch (e.key.toLowerCase()) {
       case 'w': case 'arrowup': this.state.up = false; break;
       case 's': case 'arrowdown': this.state.down = false; break;
@@ -140,5 +167,7 @@ export class InputSystem {
 
   private _onBlur = (): void => {
     this._clearGameInput();
+    this._viewHeld = false;
+    this._hybridHeld = false;
   };
 }

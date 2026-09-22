@@ -1,0 +1,167 @@
+/* Phase 6 visual experiment: ash, concrete, paper and rust. */
+:root {
+  --color-bg: #242720;
+  --color-green: #e9e0cd;
+  --color-red: #c6634d;
+  --color-amber: #d8a872;
+  --color-dim: #706e61;
+  --color-muted: #b4ad9b;
+  --font-mono: 'Source Sans 3', sans-serif;
+}
+
+body.wasteland {
+  background: #4e5149;
+  color: #e9e0cd;
+  font-family: 'Source Sans 3', sans-serif;
+}
+body.wasteland ::selection { background: #a45e43; color: #fff9e9; }
+body.wasteland #ui-layer::before { display: none; }
+body.wasteland .screen {
+  background: rgba(22, 23, 20, 0.58);
+  backdrop-filter: blur(3px);
+  color: #eee7d8;
+  font-family: 'Source Sans 3', sans-serif;
+}
+body.wasteland .screen-box,
+body.wasteland .menu-box {
+  background: rgba(31, 32, 28, 0.9);
+  border: 0;
+  border-top: 3px solid #b66d4e;
+  box-shadow: 0 22px 60px rgba(16, 17, 15, 0.36);
+  color: #eee7d8;
+}
+body.wasteland .screen-box { width: min(560px, calc(100vw - 48px)); max-height: calc(100vh - 64px); overflow-y: auto; }
+body.wasteland .menu-bg-art { display: none; }
+body.wasteland #screen-main-menu { align-items: flex-start; }
+body.wasteland .menu-box {
+  margin-left: clamp(28px, 7vw, 120px);
+  margin-right: 24px;
+  align-items: flex-start;
+  min-width: 0;
+  width: min(490px, calc(100vw - 52px));
+  padding: 44px 50px 36px;
+  gap: 12px;
+}
+body.wasteland .menu-title,
+body.wasteland .screen-title,
+body.wasteland .victory-title {
+  font-family: 'Barlow Condensed', 'Arial Narrow', sans-serif;
+  font-weight: 800;
+  color: #f1eadc;
+  text-shadow: none;
+  letter-spacing: -0.025em;
+  line-height: 0.94;
+  animation: none;
+}
+body.wasteland .menu-title { font-size: clamp(60px, 6.7vw, 98px); max-width: 330px; }
+body.wasteland .screen-title { font-size: 42px; }
+body.wasteland .menu-subtitle {
+  color: #d7a983;
+  font-family: 'Barlow Condensed', 'Arial Narrow', sans-serif;
+  font-weight: 600;
+  font-size: 18px;
+  letter-spacing: 0.16em;
+  margin: 2px 0 18px;
+}
+body.wasteland .menu-sep { display: none; }
+body.wasteland .menu-footer,
+body.wasteland .brief-num,
+body.wasteland .brief-label,
+body.wasteland .result-mission,
+body.wasteland .stats-row span:first-child,
+body.wasteland .stats-sep,
+body.wasteland .ach-desc { color: #b7b19f; }
+body.wasteland .menu-footer { font-size: 12px; letter-spacing: 0.06em; margin-top: 16px; }
+body.wasteland .menu-btn,
+body.wasteland .upgrade-btn,
+body.wasteland .toggle-btn {
+  font-family: 'Barlow Condensed', 'Arial Narrow', sans-serif;
+  font-weight: 600;
+  letter-spacing: 0.07em;
+  color: #eee7d8;
+  background: transparent;
+  border: 0;
+  border-bottom: 1px solid #747568;
+  text-shadow: none;
+  transition: background-color 150ms ease, color 150ms ease, border-color 150ms ease;
+}
+body.wasteland .menu-btn { font-size: 21px; padding: 11px 14px; }
+body.wasteland .menu-btn.primary { color: #fff5e6; background: #a6543a; border-bottom-color: #c78364; }
+body.wasteland .menu-btn:hover,
+body.wasteland .upgrade-btn:hover,
+body.wasteland .toggle-btn:hover,
+body.wasteland .mission-btn.unlocked:hover { background: #7b4434; color: #fff5e6; border-color: #b77b61; text-shadow: none; }
+body.wasteland .menu-btn.danger { color: #e6a08c; border-color: #9e5b48; }
+body.wasteland .menu-btn.danger:hover { background: #713b31; }
+body.wasteland .mission-btn {
+  font-family: 'Source Sans 3', sans-serif;
+  background: rgba(84, 84, 73, 0.18);
+  border: 1px solid #696b60;
+  color: #aea999;
+}
+body.wasteland .mission-btn.unlocked { color: #f2e9d8; }
+body.wasteland .mission-btn.completed { border-color: #a88065; }
+body.wasteland .mission-num,
+body.wasteland .mission-status,
+body.wasteland .mission-threat,
+body.wasteland .threat-dots,
+body.wasteland .result-ach,
+body.wasteland .ach-row.unlocked .ach-mark { color: #d69b71; }
+body.wasteland .brief-sub,
+body.wasteland .victory-sub { color: #d6cdbc; }
+body.wasteland .result-banner { font-family: 'Barlow Condensed', sans-serif; font-size: 30px; font-weight: 700; }
+body.wasteland .complete-banner { color: #eee3ce; background: #585646; border: 0; }
+body.wasteland .failed-banner { color: #f3d0ba; background: #733f36; border: 0; }
+body.wasteland .xp-row span:last-child { color: #e4bd83; }
+body.wasteland .upgrade-btn { font-size: 19px; background: rgba(84, 84, 73, .25); }
+body.wasteland .upgrade-rank { color: #c9b9a0; }
+body.wasteland .toggle-btn { color: #efe3cc; background: #636453; border: 0; min-width: 64px; }
+body.wasteland .toggle-btn.off { color: #c4baa8; background: #4d4d44; }
+body.wasteland .volume-slider { accent-color: #b86b4d; }
+body.wasteland .settings-sep { background: #777568; }
+body.wasteland .stats-sep { border-color: #777568; }
+body.wasteland .victory-title { font-size: 56px; }
+body.wasteland .victory-note { color: #c9bba4; font-size: 16px; max-width: 34ch; }
+body.wasteland .menu-btn:focus-visible,
+body.wasteland .toggle-btn:focus-visible,
+body.wasteland .upgrade-btn:focus-visible,
+body.wasteland .mission-btn:focus-visible,
+body.wasteland .volume-slider:focus-visible {
+  outline: 2px solid #e9ad7d;
+  outline-offset: 3px;
+}
+body.wasteland .visitor-counter { background: transparent; border: 0; padding-left: 0; color: #c9bba4; }
+body.wasteland .visitor-counter__ping { background: #c98561; }
+body.wasteland .visitor-counter__core { background: #c98561; box-shadow: none; }
+body.wasteland .visitor-counter__count { color: #ead6b4; text-shadow: none; }
+body.wasteland #hud { color: #f0e8d7; font-family: 'Barlow Condensed', 'Arial Narrow', sans-serif; }
+body.wasteland .hud-panel {
+  background: rgba(35, 36, 31, 0.8);
+  border: 0;
+  border-top: 2px solid #b87252;
+  padding: 7px 13px;
+  box-shadow: 0 8px 24px rgba(20, 20, 16, 0.17);
+}
+body.wasteland .hud-label { color: #bfb8a7; letter-spacing: 0.12em; }
+body.wasteland .hud-value { color: #f2e8d3; }
+body.wasteland .hud-bar-track { background: #5b5c50; border-radius: 0; height: 5px; }
+body.wasteland .hud-mission-title { color: #f3e9d5; font-size: 17px; letter-spacing: 0.08em; }
+body.wasteland .hud-obj-text { color: #c9bea8; font-size: 13px; }
+body.wasteland .hud-timer { color: #f3deba; font-size: 23px; }
+body.wasteland .hud-kills,
+body.wasteland .hud-ammo-text,
+body.wasteland .hud-level { color: #e9b48a; }
+body.wasteland .hud-countdown { color: #fff0d5; text-shadow: 0 4px 20px rgba(43, 29, 20, 0.55); animation: none; }
+body.wasteland .hud-boss-name { color: #efd0bb; text-shadow: none; }
+body.wasteland .hud-boss-track { border-color: #8d5a46; background: #473632; }
+body.wasteland .hud-boss-bar { background: #b65d4a; }
+body.wasteland .hud-crosshair { color: #f5e1b9; text-shadow: 0 1px 3px #322a22; }
+body.wasteland .hud-banner { font-family: 'Barlow Condensed', sans-serif; color: #fff0d5; letter-spacing: 0.07em; text-shadow: 0 3px 12px #42372d; }
+body.wasteland #pause-overlay { background: rgba(25, 25, 21, 0.8) !important; color: #f3e7d2 !important; font-family: 'Barlow Condensed', sans-serif !important; }
+body.wasteland #cheat-panel { background: rgba(34, 34, 29, .92) !important; border-color: #a6785b !important; }
+body.wasteland .cheat-btn { color: #efe0c7 !important; background: #4b4c42 !important; border-color: #777467 !important; }
+body.wasteland .cheat-btn:hover { background: #7a4c3a !important; }
+@media (prefers-reduced-motion: reduce) {
+  body.wasteland .screen { backdrop-filter: none; }
+  body.wasteland .menu-btn, body.wasteland .upgrade-btn, body.wasteland .toggle-btn { transition: none; }
+}

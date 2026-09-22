@@ -60,7 +60,7 @@ export class HUD {
 
     // HP bar
     const hpPct = Math.max(0, data.hp / data.maxHp);
-    const hpColor = hpPct > 0.5 ? '#39ff14' : hpPct > 0.25 ? '#ffaa00' : '#ff2222';
+    const hpColor = hpPct > 0.5 ? '#b6bc98' : hpPct > 0.25 ? '#d5a36d' : '#c45f4e';
     this._set('hud-hp-bar', `width: ${Math.round(hpPct * 100)}%; background: ${hpColor}`);
     this._text('hud-hp-text', `${Math.ceil(data.hp)} / ${data.maxHp}`);
 
@@ -72,8 +72,8 @@ export class HUD {
     const ammoEl = document.getElementById('hud-ammo');
     if (ammoEl) {
       const low = !data.reloading && data.ammoMag <= 2;
-      ammoEl.style.color = data.reloading ? '#ffaa00' : low ? '#ff2222' : '#ffaa00';
-      ammoEl.style.textShadow = low ? '0 0 10px #ff2222' : 'none';
+      ammoEl.style.color = data.reloading ? '#d5a36d' : low ? '#c45f4e' : '#e2ba87';
+      ammoEl.style.textShadow = low ? '0 0 10px #c45f4e' : 'none';
     }
     const ammoPct = data.ammoMag / Math.max(1, data.ammoMag + (data.reloading ? 0 : 0));
     void ammoPct; // ammo bar updated separately
@@ -82,10 +82,10 @@ export class HUD {
     const totalAmmo = data.ammoMag + data.ammoReserve;
     const maxAmmo = data.ammoMag + data.ammoReserve; // rough max
     void maxAmmo;
-    this._set('hud-ammo-bar', `width: ${Math.round((data.ammoMag / Math.max(1, data.ammoMag + data.ammoReserve)) * 100)}%; background: #ffaa00`);
+    this._set('hud-ammo-bar', `width: ${Math.round((data.ammoMag / Math.max(1, data.ammoMag + data.ammoReserve)) * 100)}%; background: #d5a36d`);
 
     // XP bar
-    this._set('hud-xp-bar', `width: ${Math.round(data.xpPct * 100)}%; background: #4488ff`);
+    this._set('hud-xp-bar', `width: ${Math.round(data.xpPct * 100)}%; background: #b99573`);
     this._text('hud-level', `LV ${data.level}`);
 
     // Mission info
@@ -153,7 +153,7 @@ export class HUD {
   }
 
   /** Transient center-screen message (level up, achievement, wave warning). */
-  showBanner(text: string, color = '#39ff14'): void {
+  showBanner(text: string, color = '#e6d3af'): void {
     const el = document.getElementById('hud-banner');
     if (!el) return;
     el.textContent = text;
@@ -204,13 +204,13 @@ export class HUD {
     <!-- Bottom Left: Weapon + Ammo -->
     <div class="hud-panel hud-bl">
       <div id="hud-ammo" class="hud-ammo-text">PISTOL  12 / 72</div>
-      <div class="hud-bar-track"><div id="hud-ammo-bar" class="hud-bar" style="background:#ffaa00"></div></div>
+      <div class="hud-bar-track"><div id="hud-ammo-bar" class="hud-bar" style="background:#d5a36d"></div></div>
     </div>
 
     <!-- Bottom Right: XP / Level -->
     <div class="hud-panel hud-br">
       <div id="hud-level" class="hud-level">LV 1</div>
-      <div class="hud-bar-track"><div id="hud-xp-bar" class="hud-bar" style="background:#4488ff; width:0%"></div></div>
+      <div class="hud-bar-track"><div id="hud-xp-bar" class="hud-bar" style="background:#b99573; width:0%"></div></div>
       <div class="hud-label">XP</div>
     </div>
 
@@ -289,7 +289,7 @@ export class HUD {
       }
       .hud-boss-name {
         font-size: 12px; letter-spacing: 4px; color: #ff4444;
-        text-shadow: 0 0 10px #ff2222;
+        text-shadow: 0 0 10px #c45f4e;
       }
       .hud-boss-track {
         width: 100%; height: 12px; background: #2a0a0a;

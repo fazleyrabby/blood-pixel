@@ -28,6 +28,13 @@ export function updateMovement(world: World, input: InputSystem, dt: number): vo
     dirX *= inv;
     dirY *= inv;
   }
+  if (s.firstPerson) {
+    const forward = -dirY;
+    const strafe = dirX;
+    const angle = player.angle;
+    dirX = forward * Math.cos(angle) - strafe * Math.sin(angle);
+    dirY = forward * Math.sin(angle) + strafe * Math.cos(angle);
+  }
 
   // Knockback decays exponentially
   const kbDecay = Math.exp(-KNOCKBACK_DECAY * dt);

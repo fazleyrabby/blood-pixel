@@ -8,6 +8,7 @@ import { Application } from 'pixi.js';
 import { Game } from './game/Game';
 import { initVisitorCounter } from './ui/VisitorCounter';
 import './style.css';
+import './ui/wasteland.css';
 
 function showFatal(err: unknown): void {
   console.error('[BloodPixel] Fatal:', err);
@@ -30,6 +31,7 @@ function showFatal(err: unknown): void {
 
 (async () => {
   try {
+    document.body.classList.add('wasteland');
     const app = new Application();
 
     // Device pixel ratio capped at 2 per spec §71

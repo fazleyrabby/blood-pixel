@@ -36,6 +36,16 @@ export class Camera {
 
   /** Vertical compression for the tilted view. 1 = flat top-down. */
   private yScale = 1;
+  private worldToScreenOverride: ((x: number, y: number) => { x: number; y: number }) | null = null;
+  private screenToWorldOverride: ((x: number, y: number) => { x: number; y: number }) | null = null;
+
+  setMapping(
+    toScreen: ((x: number, y: number) => { x: number; y: number }) | null,
+    toWorld: ((x: number, y: number) => { x: number; y: number }) | null,
+  ): void {
+    this.worldToScreenOverride = toScreen;
+    this.screenToWorldOverride = toWorld;
+  }
 
   // ── Screen shake ──
   private shakeEnabled = true;
@@ -87,6 +97,8 @@ export class Camera {
     this.screenW = w;
     this.screenH = h;
   }
+  get width(): number { return this.screenW; }
+  get height(): number { return this.screenH; }
 
   setBounds(bounds: CameraBounds | null): void {
     this.bounds = bounds;
@@ -144,6 +156,7 @@ export class Camera {
 
   /** Convert world position to screen position */
   worldToScreen(wx: number, wy: number): { x: number; y: number } {
+    if (this.worldToScreenOverride) return this.worldToScreenOverride(wx, wy);
     return {
       x: wx - this.x + this.screenW / 2 + this.shakeX,
       y: (wy - this.y) * this.yScale + this.screenH / 2 + this.shakeY,
@@ -152,6 +165,7 @@ export class Camera {
 
   /** Convert screen position to world position */
   screenToWorld(sx: number, sy: number): { x: number; y: number } {
+    if (this.screenToWorldOverride) return this.screenToWorldOverride(sx, sy);
     return {
       x: sx - this.screenW / 2 + this.x - this.shakeX,
       y: (sy - this.screenH / 2 - this.shakeY) / this.yScale + this.y,

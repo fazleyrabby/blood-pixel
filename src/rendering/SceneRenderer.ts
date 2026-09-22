@@ -8,6 +8,8 @@ import type { World } from '../game/World';
 
 /** The simulation-facing render contract shared by visual experiments. */
 export interface SceneRenderer {
+  setViewMode(mode: 'overhead' | 'first-person'): void;
+  setActorStyle(style: 'voxel' | 'billboard'): void;
   buildArena(arena: ArenaDef, player: PlayerEntity): void;
   clear(): void;
   setTilt(tilt: number): void;

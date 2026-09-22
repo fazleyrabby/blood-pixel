@@ -251,13 +251,13 @@ export class ScreenManager {
       <div class="menu-bg-art" aria-hidden="true"></div>
       <div class="menu-box">
         <div class="menu-title glitch" data-text="BLOOD PIXEL">BLOOD PIXEL</div>
-        <div class="menu-subtitle">DEAD WORLD</div>
+        <div class="menu-subtitle">AFTER THE FALL · 15 OPERATIONS</div>
         <div class="menu-sep">⸻⸻⸻⸻⸻</div>
-        <button id="mm-play" class="menu-btn primary">[ PLAY ]</button>
-        <button id="mm-missions" class="menu-btn">[ MISSIONS ]</button>
-        <button id="mm-stats" class="menu-btn">[ STATS ]</button>
-        <button id="mm-settings" class="menu-btn">[ SETTINGS ]</button>
-        <div class="menu-footer">PRESS ESC TO PAUSE DURING PLAY</div>
+        <button id="mm-play" class="menu-btn primary">DEPLOY</button>
+        <button id="mm-missions" class="menu-btn">OPERATIONS</button>
+        <button id="mm-stats" class="menu-btn">SURVIVOR RECORD</button>
+        <button id="mm-settings" class="menu-btn">OPTIONS</button>
+        <div class="menu-footer">WASD MOVE  ·  MOUSE AIM  ·  V VIEW  ·  ESC PAUSE</div>
         <div id="visitor-counter-mount" class="menu-counter"></div>
       </div>
     `;
@@ -275,9 +275,9 @@ export class ScreenManager {
     el.className = 'screen';
     el.innerHTML = `
       <div class="screen-box">
-        <div class="screen-title">MISSION SELECT</div>
+        <div class="screen-title">OPERATIONS</div>
         <div id="mission-select-grid" class="mission-grid"></div>
-        <button class="menu-btn" id="ms-back">[ BACK ]</button>
+        <button class="menu-btn" id="ms-back">BACK</button>
       </div>
     `;
     el.querySelector('#ms-back')!.addEventListener('click', () => this.show('main-menu'));
@@ -298,8 +298,8 @@ export class ScreenManager {
         <div class="brief-row"><span class="brief-label">OBJECTIVE</span><span id="brief-objective">KILL 20</span></div>
         <div class="brief-row"><span class="brief-label">THREAT</span><span id="brief-threat" class="threat-dots">●○○○○</span></div>
         <div class="brief-actions">
-          <button id="brief-start-btn" class="menu-btn primary">[ START ]</button>
-          <button id="brief-back-btn" class="menu-btn">[ BACK ]</button>
+          <button id="brief-start-btn" class="menu-btn primary">ENTER THE RUINS</button>
+          <button id="brief-back-btn" class="menu-btn">BACK</button>
         </div>
       </div>
     `;
@@ -323,9 +323,9 @@ export class ScreenManager {
         </div>
         <div id="complete-achievements" class="result-achievements" style="display:none"></div>
         <div class="result-actions">
-          <button id="complete-upgrade-btn" class="menu-btn primary" style="display:none">[ CHOOSE UPGRADE ]</button>
-          <button id="complete-next-btn" class="menu-btn primary" style="display:none">[ NEXT MISSION ]</button>
-          <button id="complete-missions-btn" class="menu-btn">[ MISSION SELECT ]</button>
+          <button id="complete-upgrade-btn" class="menu-btn primary" style="display:none">CHOOSE UPGRADE</button>
+          <button id="complete-next-btn" class="menu-btn primary" style="display:none">NEXT OPERATION</button>
+          <button id="complete-missions-btn" class="menu-btn">[ OPERATIONS ]</button>
         </div>
       </div>
     `;
@@ -348,8 +348,8 @@ export class ScreenManager {
         </div>
         <div id="failed-achievements" class="result-achievements" style="display:none"></div>
         <div class="result-actions">
-          <button id="failed-retry" class="menu-btn primary">[ RETRY ]</button>
-          <button id="failed-missions" class="menu-btn">[ MISSION SELECT ]</button>
+          <button id="failed-retry" class="menu-btn primary">TRY AGAIN</button>
+          <button id="failed-missions" class="menu-btn">[ OPERATIONS ]</button>
         </div>
       </div>
     `;
@@ -365,7 +365,7 @@ export class ScreenManager {
     el.className = 'screen';
     el.innerHTML = `
       <div class="screen-box">
-        <div class="screen-title">CHOOSE UPGRADE</div>
+        <div class="screen-title">FIELD UPGRADE</div>
         <div id="upgrade-choices" class="upgrade-list"></div>
       </div>
     `;
@@ -380,14 +380,9 @@ export class ScreenManager {
     el.innerHTML = `
       <div class="screen-box victory-box">
         <div class="victory-title">YOU SURVIVED</div>
-        <div class="victory-sub">THE DEAD WORLD IS YOURS.</div>
-        <div class="victory-ascii">
-░▒▓▓▓▓▒░<br>
-▓  BLOOD  ▓<br>
-▓  PIXEL  ▓<br>
-░▒▓▓▓▓▒░
-        </div>
-        <button id="victory-menu" class="menu-btn primary">[ MAIN MENU ]</button>
+        <div class="victory-sub">THE RUINS ARE QUIET. FOR NOW.</div>
+        <div class="victory-note">You held the line through every operation. The wasteland remembers.</div>
+        <button id="victory-menu" class="menu-btn primary">RETURN TO CAMP</button>
       </div>
     `;
     el.querySelector('#victory-menu')!.addEventListener('click', () => this.show('main-menu'));
@@ -411,11 +406,11 @@ export class ScreenManager {
           <input id="setting-volume" class="volume-slider" type="range" min="0" max="100" step="5" value="70" />
         </div>
         <div class="settings-row">
-          <label>Depth Tilt</label>
+          <label>Overhead Angle</label>
           <button id="setting-depth" class="toggle-btn" data-key="depthTilt">ON</button>
         </div>
         <div class="settings-row">
-          <label>CRT Effects</label>
+          <label>Atmosphere Filter</label>
           <button id="setting-crt" class="toggle-btn" data-key="crtEnabled">ON</button>
         </div>
         <div class="settings-row">
@@ -423,7 +418,7 @@ export class ScreenManager {
           <button id="setting-shake" class="toggle-btn" data-key="screenShake">ON</button>
         </div>
         <div class="settings-row">
-          <label>Dithering</label>
+          <label>Film Grain</label>
           <button id="setting-dither" class="toggle-btn" data-key="dithering">ON</button>
         </div>
         <div class="settings-row">
@@ -447,8 +442,8 @@ export class ScreenManager {
           <button id="setting-fullscreen" class="toggle-btn" data-key="fullscreen">OFF</button>
         </div>
         <div class="settings-sep"></div>
-        <button id="setting-reset" class="menu-btn danger">[ RESET PROGRESS ]</button>
-        <button id="settings-close" class="menu-btn">[ CLOSE ]</button>
+        <button id="setting-reset" class="menu-btn danger">RESET PROGRESS</button>
+        <button id="settings-close" class="menu-btn">CLOSE</button>
       </div>
     `;
     el.querySelector('#settings-close')!.addEventListener('click', () => { this.onSettingsClose?.(); this.show('main-menu'); });
@@ -552,7 +547,7 @@ export class ScreenManager {
           <span>ACHIEVEMENTS</span><span id="stats-ach-count">0 / 0</span>
         </div>
         <div id="stats-achievements" class="ach-list"></div>
-        <button id="stats-close" class="menu-btn">[ BACK ]</button>
+        <button id="stats-close" class="menu-btn">BACK</button>
       </div>
     `;
     el.querySelector('#stats-close')!.addEventListener('click', () => this.show('main-menu'));

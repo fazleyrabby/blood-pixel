@@ -11,11 +11,13 @@
     "package": "npm run build && cd dist && zip -qr ../blood-pixel.zip . && echo 'Built blood-pixel.zip'"
   },
   "devDependencies": {
+    "@types/three": "^0.186.0",
     "typescript": "~6.0.2",
     "vite": "^8.3.0",
     "vitest": "^5.0.1"
   },
   "dependencies": {
-    "pixi.js": "^8.21.0"
+    "pixi.js": "^8.21.0",
+    "three": "^0.186.0"
   }
 }

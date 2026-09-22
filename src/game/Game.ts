@@ -95,6 +95,9 @@ export class Game {
   private lastCountdownBeep = -1;
   private fpsEma = 60;
   private overlayClock = 0;
+  private frameDeltas: number[] = [];
+  private viewMode: 'overhead' | 'first-person' = 'overhead';
+  private actorStyle: 'voxel' | 'billboard' = 'voxel';
 
   constructor(app: Application) {
     this.app = app;
@@ -124,6 +127,13 @@ export class Game {
     document.addEventListener('fullscreenchange', this.onFullscreenChange);
 
     this.exposeDebugApi();
+
+    // A quiet view of the ruined town stays behind the main menu.
+    const previewArena = ARENAS.town;
+    const previewPlayer = createPlayer(previewArena.playerStartX, previewArena.playerStartY);
+    this.scene.buildArena(previewArena, previewPlayer);
+    this.camera.x = previewPlayer.x;
+    this.camera.y = previewPlayer.y;
 
     this.loop = new GameLoop(this.fixedUpdate, this.render);
     this.loop.start();
@@ -772,6 +782,17 @@ export class Game {
     if (this.input.state.mutePressed) this.audio.toggleMute();
     if (this.input.state.debugToggle) this.toggleDevOverlay();
     if (this.input.state.cheatPanelPressed) this.toggleCheatPanel();
+    if (this.input.state.viewPressed) {
+      this.viewMode = this.viewMode === 'overhead' ? 'first-person' : 'overhead';
+      this.input.state.firstPerson = this.viewMode === 'first-person';
+      this.scene.setViewMode(this.viewMode);
+      this.hud.showBanner(this.viewMode === 'first-person' ? 'FIRST PERSON · V TO SWITCH' : 'OVERHEAD · V TO SWITCH', '#e6d3af');
+    }
+    if (this.input.state.hybridPressed) {
+      this.actorStyle = this.actorStyle === 'voxel' ? 'billboard' : 'voxel';
+      this.scene.setActorStyle(this.actorStyle);
+      this.hud.showBanner(this.actorStyle === 'billboard' ? 'BILLBOARD ACTORS · H TO SWITCH' : 'VOXEL ACTORS · H TO SWITCH', '#e6d3af');
+    }
 
     // Pause toggle via Escape (also handled by window keydown; consume flag)
     if (this.input.state.pausePressed) {
@@ -930,6 +951,10 @@ export class Game {
 
     // FPS estimate for the dev overlay
     if (dt > 0) this.fpsEma += ((1 / dt) - this.fpsEma) * 0.08;
+    if (this.state.phase === 'PLAYING' && dt > 0) {
+      this.frameDeltas.push(dt * 1000);
+      if (this.frameDeltas.length > 180) this.frameDeltas.shift();
+    }
 
     const world = this.world;
     if (world) {
@@ -942,12 +967,16 @@ export class Game {
 
         if (this.hudVisible()) {
           this.hud.update(this.buildHudData());
-          this.hud.updateCrosshairPosition(this.input.state.mouseX, this.input.state.mouseY);
+          this.hud.updateCrosshairPosition(
+            this.viewMode === 'first-person' ? this.app.screen.width / 2 : this.input.state.mouseX,
+            this.viewMode === 'first-person' ? this.app.screen.height / 2 : this.input.state.mouseY,
+          );
         }
       }
     }
 
     this.updateDevOverlay(dt);
+    if (!world) this.scene.applyCamera(this.camera);
     if (!world || !this.hudVisible()) this.scene.update(dt, null);
   };
 
@@ -1049,9 +1078,14 @@ export class Game {
 
     const st = this.state;
     const w = this.world;
+    const sorted = [...this.frameDeltas].sort((a, b) => a - b);
+    const median = sorted.length ? sorted[Math.floor(sorted.length / 2)] : 0;
+    const p95 = sorted.length ? sorted[Math.floor(sorted.length * 0.95)] : 0;
+    const worst = sorted.at(-1) ?? 0;
     el.textContent =
       `BLOOD PIXEL // DEV\n` +
       `fps     ${this.fpsEma.toFixed(0)}\n` +
+      `rAF ms  ${median.toFixed(1)} med  ${p95.toFixed(1)} p95  ${worst.toFixed(1)} max\n` +
       `phase   ${st.phase}\n` +
       `pos     ${st.x.toFixed(0)}, ${st.y.toFixed(0)}\n` +
       `hp      ${st.hp.toFixed(0)} / ${st.maxHp}\n` +
