@@ -28,11 +28,23 @@ export class ProceduralActor extends Container {
 
   showFrame(frame: number): void {
     this.currentFrame = frame;
-    const step = frame % 2 === 0 ? -2 : 2;
+    const phase = (frame % 8) * Math.PI / 4;
+    const wave = Math.sin(phase);
+    const counterWave = Math.sin(phase + Math.PI / 2);
+    const step = wave * 2.4;
     this.leftLeg.y = step;
     this.rightLeg.y = -step;
-    this.leftArm.y = -step * 0.6;
-    this.rightArm.y = step * 0.6;
+    this.leftLeg.rotation = wave * 0.035;
+    this.rightLeg.rotation = -wave * 0.035;
+    this.leftArm.y = -step * 0.65;
+    this.rightArm.y = step * 0.65;
+    this.leftArm.rotation = counterWave * 0.07;
+    this.rightArm.rotation = -counterWave * 0.07;
+    // A small squash and bob makes the silhouettes feel alive while the
+    // parent remains feet-anchored in world space.
+    this.art.y = wave * 1.1;
+    this.art.scale.set(1 + counterWave * 0.035, 1 - counterWave * 0.03);
+    this.art.rotation = wave * 0.018;
   }
 
   setTint(tint: number): void {
@@ -46,7 +58,7 @@ export class ProceduralActor extends Container {
 
   private draw(kind: ActorKind): void {
     const fill = (g: Graphics, x: number, y: number, w: number, h: number, c: number) => {
-      g.roundRect(x, y, w, h, 2).fill(c);
+      g.roundRect(x, y, w, h, Math.min(8, Math.min(w, h) * 0.42)).fill(c);
     };
     const eye = (x: number, y: number, c: number) => {
       this.art.rect(x, y, 6, 4).fill(c);
@@ -64,15 +76,15 @@ export class ProceduralActor extends Container {
     switch (kind) {
       case 'player':
         legs(0x354b55);
-        fill(this.art, 17, 30, 30, 27, 0x648f91);
-        fill(this.art, 19, 32, 26, 6, 0xe5d6b4);
-        fill(this.art, 23, 39, 18, 11, 0x3e686d);
-        arms(0xd9c9aa);
-        fill(this.art, 20, 12, 24, 20, 0xd0ae8a);
-        fill(this.art, 16, 7, 32, 9, 0xe6dbc4);
-        fill(this.art, 18, 16, 28, 8, 0x58d5df);
-        fill(this.art, 21, 15, 22, 3, 0x2b4246);
-        fill(this.art, 25, 47, 14, 6, 0xda9455);
+        fill(this.art, 17, 30, 30, 27, 0x2bced0);
+        fill(this.art, 19, 32, 26, 6, 0xf6e8c8);
+        fill(this.art, 23, 39, 18, 11, 0x176f87);
+        arms(0xffc6a1);
+        fill(this.art, 20, 12, 24, 20, 0xffb58f);
+        fill(this.art, 16, 7, 32, 9, 0xffe7bf);
+        fill(this.art, 18, 16, 28, 8, 0x5df6e4);
+        fill(this.art, 21, 15, 22, 3, 0x173d62);
+        fill(this.art, 25, 47, 14, 6, 0xff77bd);
         // Mount the weapon at the character's forward hand. The local origin
         // is the grip, so rotation keeps the grip in the hand while the
         // barrel follows the aim direction.
@@ -85,84 +97,84 @@ export class ProceduralActor extends Container {
         break;
       case 'walker':
         legs(0x55574a);
-        fill(this.art, 16, 30, 32, 29, 0x685b50);
-        fill(this.art, 13, 12, 34, 23, 0x91a67e);
-        fill(this.art, 11, 10, 31, 7, 0x45493e);
-        arms(0x839a76);
+        fill(this.art, 16, 30, 32, 29, 0x304d59);
+        fill(this.art, 13, 12, 34, 23, 0x6de0b5);
+        fill(this.art, 11, 10, 31, 7, 0x256a69);
+        arms(0x7ff0c4);
         this.rightArm.y = 8;
         eye(21, 23, 0xf5d475); eye(37, 23, 0xf5d475);
         fill(this.art, 26, 35, 13, 7, 0xa64943);
         break;
       case 'runner':
         legs(0x6b403b, 3);
-        fill(this.art, 20, 31, 24, 26, 0x77453f);
-        fill(this.art, 18, 11, 29, 24, 0xc68460);
-        fill(this.art, 16, 8, 31, 7, 0xe6a26b);
-        arms(0xc58460, 7);
+        fill(this.art, 20, 31, 24, 26, 0x6e3157);
+        fill(this.art, 18, 11, 29, 24, 0xff6f91);
+        fill(this.art, 16, 8, 31, 7, 0xffb06f);
+        arms(0xff9d8f, 7);
         eye(23, 22, 0xffdf74); eye(38, 22, 0xffdf74);
         fill(this.art, 27, 37, 11, 6, 0x9e463f);
         break;
       case 'brute':
         legs(0x5d4944, 4);
-        fill(this.art, 8, 27, 48, 35, 0x744f4b);
-        fill(this.art, 20, 9, 24, 22, 0xb9655b);
-        fill(this.art, 5, 28, 16, 18, 0xbd6c61);
-        fill(this.art, 43, 28, 16, 18, 0xbd6c61);
-        arms(0xb25b56, 13);
-        fill(this.leftArm, 5, 55, 17, 16, 0x743d3c);
-        fill(this.rightArm, 42, 55, 17, 16, 0x743d3c);
+        fill(this.art, 8, 27, 48, 35, 0x7c2f78);
+        fill(this.art, 20, 9, 24, 22, 0xff5c9d);
+        fill(this.art, 5, 28, 16, 18, 0xff6e7e);
+        fill(this.art, 43, 28, 16, 18, 0xff6e7e);
+        arms(0xff799f, 13);
+        fill(this.leftArm, 5, 55, 17, 16, 0x9f3b72);
+        fill(this.rightArm, 42, 55, 17, 16, 0x9f3b72);
         eye(23, 20, 0xffd570); eye(37, 20, 0xffd570);
         break;
       case 'spitter':
         legs(0x385a54);
-        fill(this.art, 13, 26, 38, 34, 0x3b625e);
-        fill(this.art, 17, 8, 30, 23, 0x8eac85);
-        fill(this.art, 11, 31, 42, 14, 0xb7ee4c);
-        fill(this.art, 18, 34, 28, 6, 0xe8f4a0);
-        arms(0x78a178);
+        fill(this.art, 13, 26, 38, 34, 0x315d7a);
+        fill(this.art, 17, 8, 30, 23, 0x9cf04f);
+        fill(this.art, 11, 31, 42, 14, 0xd9ff4f);
+        fill(this.art, 18, 34, 28, 6, 0xf4ffad);
+        arms(0x9eea69);
         eye(21, 19, 0xf5ef98); eye(37, 19, 0xf5ef98);
         fill(this.art, 26, 28, 12, 5, 0xd3f254);
         break;
       case 'crawler':
-        fill(this.art, 11, 38, 42, 18, 0x625162);
-        fill(this.art, 19, 29, 31, 18, 0xb6a4aa);
-        fill(this.art, 19, 49, 30, 9, 0xa44756);
-        fill(this.leftArm, 1, 47, 20, 9, 0xb6a4aa);
-        fill(this.rightArm, 44, 47, 19, 9, 0xb6a4aa);
-        fill(this.leftLeg, 12, 56, 16, 10, 0x625162);
-        fill(this.rightLeg, 37, 56, 16, 10, 0x625162);
+        fill(this.art, 11, 38, 42, 18, 0x453b80);
+        fill(this.art, 19, 29, 31, 18, 0xd18cff);
+        fill(this.art, 19, 49, 30, 9, 0xff5fa2);
+        fill(this.leftArm, 1, 47, 20, 9, 0xd18cff);
+        fill(this.rightArm, 44, 47, 19, 9, 0xd18cff);
+        fill(this.leftLeg, 12, 56, 16, 10, 0x453b80);
+        fill(this.rightLeg, 37, 56, 16, 10, 0x453b80);
         eye(26, 37, 0xffdc81); eye(41, 37, 0xffdc81);
         break;
       case 'armored':
         legs(0x33464d);
-        fill(this.art, 13, 28, 38, 34, 0x3f5863);
-        fill(this.art, 17, 29, 30, 8, 0x86aab4);
-        fill(this.art, 13, 7, 38, 24, 0x40535b);
-        fill(this.art, 16, 6, 32, 7, 0x95b5be);
-        fill(this.art, 19, 18, 26, 6, 0x77d7e4);
-        arms(0x7198a3);
-        fill(this.leftArm, 4, 32, 15, 33, 0x8faeb7);
-        fill(this.leftArm, 7, 35, 9, 22, 0x344d56);
+        fill(this.art, 13, 28, 38, 34, 0x24509a);
+        fill(this.art, 17, 29, 30, 8, 0x65d9ff);
+        fill(this.art, 13, 7, 38, 24, 0x3272bf);
+        fill(this.art, 16, 6, 32, 7, 0xa3edff);
+        fill(this.art, 19, 18, 26, 6, 0x6fffe0);
+        arms(0x78dfff);
+        fill(this.leftArm, 4, 32, 15, 33, 0x6fcfff);
+        fill(this.leftArm, 7, 35, 9, 22, 0x203e88);
         break;
       case 'exploder':
         legs(0x57433d);
-        fill(this.art, 9, 28, 46, 35, 0xa3523f);
-        this.art.circle(32, 43, 20).fill(0xe9913f);
-        this.art.circle(32, 43, 11).fill(0xffbf59);
-        fill(this.art, 19, 8, 26, 25, 0x96604d);
-        arms(0x965643);
+        fill(this.art, 9, 28, 46, 35, 0x9d3e38);
+        this.art.circle(32, 43, 20).fill(0xff7045);
+        this.art.circle(32, 43, 11).fill(0xffd45e);
+        fill(this.art, 19, 8, 26, 25, 0xff8664);
+        arms(0xff8c5a);
         eye(22, 19, 0xffda76); eye(38, 19, 0xffda76);
         break;
       case 'abomination':
         legs(0x524258, 5);
-        fill(this.art, 8, 21, 48, 43, 0x634764);
-        fill(this.art, 14, 15, 40, 18, 0xb25a81);
-        fill(this.art, 19, 2, 27, 28, 0x533f5c);
-        fill(this.art, 16, 6, 5, 16, 0xd2c49c);
-        fill(this.art, 45, 6, 5, 16, 0xd2c49c);
-        arms(0xa64d73, 13);
-        fill(this.leftArm, 0, 46, 19, 29, 0xb85b7d);
-        fill(this.rightArm, 46, 49, 16, 25, 0x854667);
+        fill(this.art, 8, 21, 48, 43, 0x542a9b);
+        fill(this.art, 14, 15, 40, 18, 0xf05ad5);
+        fill(this.art, 19, 2, 27, 28, 0x3f42a6);
+        fill(this.art, 16, 6, 5, 16, 0xffd36b);
+        fill(this.art, 45, 6, 5, 16, 0xffd36b);
+        arms(0xff6dcf, 13);
+        fill(this.leftArm, 0, 46, 19, 29, 0xe14cbb);
+        fill(this.rightArm, 46, 49, 16, 25, 0xa640bd);
         eye(23, 16, 0xee86c4); eye(39, 16, 0xee86c4);
         break;
     }

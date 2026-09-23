@@ -251,7 +251,7 @@ export class CharacterRenderer {
       this.animTimers.set(-1, pt);
       if (pt > 0.18) {
         this.animTimers.set(-1, 0);
-        const nextFrame = (this.playerSprite.currentFrame + 1) % 2;
+        const nextFrame = (this.playerSprite.currentFrame + 1) % 8;
         this.playerSprite.showFrame(nextFrame);
       }
 
@@ -303,7 +303,7 @@ export class CharacterRenderer {
           : 0.22;
       if (timer > frameDur) {
         this.animTimers.set(zombie.id, 0);
-        spr.showFrame((spr.currentFrame + 1) % 2);
+        spr.showFrame((spr.currentFrame + 1) % 8);
       }
     }
 

@@ -32,7 +32,7 @@ export class ArenaRenderer {
     const H = arena.worldHeight;
 
     this.ground.rect(0, 0, W, H);
-    this.ground.fill({ color: arena.id === 'forest' ? 0x46534a : 0x3b4743 });
+    this.ground.fill({ color: arena.id === 'forest' ? 0x21453f : 0x263451 });
     // Soft, irregular terrain patches keep the flat world readable without a
     // technical grid. They are static geometry, so no per-frame drawing work.
     for (let i = 0; i < 115; i++) {
@@ -40,7 +40,7 @@ export class ArenaRenderer {
       const y = (Math.sin(i * 91.7 + 18) * 43758.5 % 1 + 1) % 1 * H;
       const r = 12 + (i * 37 % 47);
       this.ground.poly([x-r,y-r*0.25,x+r*0.5,y-r*0.5,x+r,y+r*0.2,x-r*0.4,y+r*0.6]);
-      this.ground.fill({ color: [0x536055, 0x5e5b4c, 0x303d3b, 0x697064][i % 4], alpha: 0.72 });
+      this.ground.fill({ color: [0x2d5d63, 0x4b3e68, 0x31514d, 0x3e5270][i % 4], alpha: 0.82 });
     }
 
     // ── Obstacles (flat 2D silhouettes with small shadow offsets) ──
@@ -53,13 +53,13 @@ export class ArenaRenderer {
       if (isTree) {
         this._drawTree(obs.x + obs.width / 2, obs.y + obs.height / 2, arena.wallColor);
       } else if (isRock) {
-        this._drawFlatRuin(obs.x, obs.y, obs.width, obs.height, 0x77796e);
+        this._drawFlatRuin(obs.x, obs.y, obs.width, obs.height, 0x7b6f8f);
       } else if (isPillar) {
-        this._drawFlatRuin(obs.x, obs.y, obs.width, obs.height, 0x626e69);
+        this._drawFlatRuin(obs.x, obs.y, obs.width, obs.height, 0x54758a);
       } else if (isContainer) {
-        this._drawFlatRuin(obs.x, obs.y, obs.width, obs.height, 0x64716b);
+        this._drawFlatRuin(obs.x, obs.y, obs.width, obs.height, 0x4f8077);
       } else {
-        this._drawFlatRuin(obs.x, obs.y, obs.width, obs.height, 0x77837c, obs.width > 80);
+        this._drawFlatRuin(obs.x, obs.y, obs.width, obs.height, 0x806f9a, obs.width > 80);
       }
     }
   }

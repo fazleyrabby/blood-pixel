@@ -13,25 +13,25 @@
 export type EnemyPalette = 'default' | 'colorblind';
 
 const DEFAULT_TINTS: Record<string, number> = {
-  walker: 0x39ff14,
-  runner: 0xff8844,
-  brute: 0xdd2222,
-  spitter: 0xcc44ff,
-  crawler: 0x99ff33,
-  armored: 0x8899aa,
-  exploder: 0xff5522,
-  abomination: 0xcc0022,
+  walker: 0x62f0b5,
+  runner: 0xff7198,
+  brute: 0xff5c9d,
+  spitter: 0xd9ff4f,
+  crawler: 0xd18cff,
+  armored: 0x65d9ff,
+  exploder: 0xff7045,
+  abomination: 0xf05ad5,
 };
 
 const DEFAULT_ELITE: Record<string, number> = {
-  walker: 0xff4444,
-  runner: 0xff8800,
-  brute: 0xff2266,
-  spitter: 0xff88ff,
-  crawler: 0xffee44,
-  armored: 0xffddaa,
-  exploder: 0xffaa22,
-  abomination: 0xff2266,
+  walker: 0xb6ffe1,
+  runner: 0xffd36b,
+  brute: 0xffd0f2,
+  spitter: 0xf4ffad,
+  crawler: 0xf3c7ff,
+  armored: 0xa3edff,
+  exploder: 0xffd45e,
+  abomination: 0xffa4f4,
 };
 
 /** Blue/yellow-axis palette: distinguishable without red-green discrimination.
