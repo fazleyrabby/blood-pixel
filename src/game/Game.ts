@@ -794,7 +794,7 @@ export class Game {
       this.input.state.firstPerson = this.viewMode === 'first-person';
       this.scene.setViewMode(this.viewMode);
       if (this.viewMode === 'overhead') this.camera.setMapping(null, null);
-      this.hud.showBanner(this.viewMode === 'first-person' ? 'FIRST PERSON · V TO SWITCH' : '2.5D · V TO SWITCH', '#e6d3af');
+      this.hud.showBanner(this.viewMode === 'first-person' ? '2D AIM · V TO SWITCH' : '2D WORLD · V TO SWITCH', '#e6d3af');
     }
     if (this.input.state.hybridPressed) {
       this.actorStyle = this.actorStyle === 'voxel' ? 'billboard' : 'voxel';

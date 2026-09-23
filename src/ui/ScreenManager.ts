@@ -257,7 +257,7 @@ export class ScreenManager {
         <button id="mm-missions" class="menu-btn">OPERATIONS</button>
         <button id="mm-stats" class="menu-btn">SURVIVOR RECORD</button>
         <button id="mm-settings" class="menu-btn">OPTIONS</button>
-        <div class="menu-footer">WASD MOVE  ·  MOUSE AIM  ·  V VIEW  ·  ESC PAUSE</div>
+        <div class="menu-footer">WASD MOVE  ·  MOUSE AIM  ·  V AIM MODE  ·  ESC PAUSE</div>
         <div id="visitor-counter-mount" class="menu-counter"></div>
       </div>
     `;
