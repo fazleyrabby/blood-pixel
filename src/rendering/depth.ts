@@ -11,7 +11,7 @@
  */
 
 /** Vertical compression applied to the world when the tilt is enabled. */
-export const TILT_Y_SCALE = 0.78;
+export const TILT_Y_SCALE = 0.65;
 
 /** Size falloff across the depth axis (entities nearer the camera draw larger). */
 export const DEPTH_SCALE_RANGE = 0.16;

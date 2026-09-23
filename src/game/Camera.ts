@@ -8,6 +8,8 @@
  * stays pixel-accurate while the view is tilted or shaking.
  */
 
+import { projectGround, unprojectGround, type ProjectionView } from '../rendering/projection';
+
 export interface CameraBounds {
   x: number;
   y: number;
@@ -36,6 +38,7 @@ export class Camera {
 
   /** Vertical compression for the tilted view. 1 = flat top-down. */
   private yScale = 1;
+  private perspectiveFocal: number | null = null;
   private worldToScreenOverride: ((x: number, y: number) => { x: number; y: number }) | null = null;
   private screenToWorldOverride: ((x: number, y: number) => { x: number; y: number }) | null = null;
 
@@ -67,6 +70,15 @@ export class Camera {
 
   get tilt(): number {
     return this.yScale;
+  }
+
+  setPerspectiveFocal(value: number | null): void { this.perspectiveFocal = value; }
+  get focalLength(): number | null { return this.perspectiveFocal; }
+
+  projectionView(): ProjectionView {
+    return { cameraX: this.x, cameraY: this.y, screenW: this.screenW, screenH: this.screenH,
+      tilt: this.yScale, focalLength: this.perspectiveFocal ?? 1800, zoom: 1.2,
+      shakeX: this.shakeX, shakeY: this.shakeY };
   }
 
   setShakeEnabled(value: boolean): void {
@@ -157,6 +169,7 @@ export class Camera {
   /** Convert world position to screen position */
   worldToScreen(wx: number, wy: number): { x: number; y: number } {
     if (this.worldToScreenOverride) return this.worldToScreenOverride(wx, wy);
+    if (this.perspectiveFocal !== null) return projectGround(wx, wy, this.projectionView());
     return {
       x: wx - this.x + this.screenW / 2 + this.shakeX,
       y: (wy - this.y) * this.yScale + this.screenH / 2 + this.shakeY,
@@ -166,6 +179,7 @@ export class Camera {
   /** Convert screen position to world position */
   screenToWorld(sx: number, sy: number): { x: number; y: number } {
     if (this.screenToWorldOverride) return this.screenToWorldOverride(sx, sy);
+    if (this.perspectiveFocal !== null) return unprojectGround(sx, sy, this.projectionView());
     return {
       x: sx - this.screenW / 2 + this.x - this.shakeX,
       y: (sy - this.screenH / 2 - this.shakeY) / this.yScale + this.y,

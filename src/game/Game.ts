@@ -37,7 +37,7 @@ import {
 import { createPlayer, type PlayerEntity } from '../entities/Player';
 import { createZombie, type ZombieEntity } from '../entities/Zombie';
 import { ZOMBIES, type ZombieType } from '../config/zombies';
-import { createSceneRenderer } from '../rendering/PixiSceneRenderer';
+import { createSceneRenderer } from '../rendering/HybridSceneRenderer';
 import type { SceneRenderer } from '../rendering/SceneRenderer';
 import { TILT_Y_SCALE } from '../rendering/depth';
 import { AudioSystem } from '../audio/AudioSystem';
@@ -166,7 +166,9 @@ export class Game {
     this.camera.setShakeEnabled(s.screenShake && !s.reducedMotion);
     const tilt = s.depthTilt && !s.reducedMotion ? TILT_Y_SCALE : 1;
     this.camera.setYScale(tilt);
-    this.input.state.isometric = tilt !== 1;
+    this.camera.setPerspectiveFocal(tilt === 1 ? null : 1800);
+    // This perspective camera faces world north; its screen axes match world X/Y.
+    this.input.state.isometric = false;
     this.scene.setTilt(tilt);
     this.scene.setColorblind(s.colorblindMode);
     this.applyCrtSetting();
@@ -791,7 +793,8 @@ export class Game {
       this.viewMode = this.viewMode === 'overhead' ? 'first-person' : 'overhead';
       this.input.state.firstPerson = this.viewMode === 'first-person';
       this.scene.setViewMode(this.viewMode);
-      this.hud.showBanner(this.viewMode === 'first-person' ? 'FIRST PERSON · V TO SWITCH' : 'ISOMETRIC · V TO SWITCH', '#e6d3af');
+      if (this.viewMode === 'overhead') this.camera.setMapping(null, null);
+      this.hud.showBanner(this.viewMode === 'first-person' ? 'FIRST PERSON · V TO SWITCH' : '2.5D · V TO SWITCH', '#e6d3af');
     }
     if (this.input.state.hybridPressed) {
       this.actorStyle = this.actorStyle === 'voxel' ? 'billboard' : 'voxel';
