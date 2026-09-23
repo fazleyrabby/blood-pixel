@@ -48,6 +48,18 @@ describe('Camera tilt', () => {
     cam.setYScale(99);
     expect(cam.tilt).toBeLessThanOrEqual(1.5);
   });
+
+  it('round-trips world↔screen accurately under zoom', () => {
+    const cam = new Camera();
+    cam.setScreenSize(1280, 800);
+    cam.setZoom(1.5);
+    cam.x = 400;
+    cam.y = 300;
+    const s = cam.worldToScreen(550, 420);
+    const w = cam.screenToWorld(s.x, s.y);
+    expect(w.x).toBeCloseTo(550, 4);
+    expect(w.y).toBeCloseTo(420, 4);
+  });
 });
 
 describe('Camera shake', () => {

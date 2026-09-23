@@ -36,6 +36,26 @@ export class Camera {
   /** Smoothing factor (higher = snappier; 0 = snap instantly, for reduced-motion) */
   private smoothing = 8;
 
+  /** Camera zoom level (1.0 = normal, < 1 = zoom out / wide, > 1 = zoom in / close) */
+  zoom = 1.0;
+  private targetZoom = 1.0;
+  private minZoom = 0.55;
+  private maxZoom = 1.85;
+
+  /** Adjust zoom by delta, clamping within min and max limits */
+  adjustZoom(delta: number): void {
+    this.targetZoom = Math.max(this.minZoom, Math.min(this.maxZoom, this.targetZoom + delta));
+  }
+
+  setZoom(value: number): void {
+    this.targetZoom = Math.max(this.minZoom, Math.min(this.maxZoom, value));
+    this.zoom = this.targetZoom;
+  }
+
+  getZoom(): number {
+    return this.zoom;
+  }
+
   /** Vertical compression for the tilted view. 1 = flat top-down. */
   private yScale = 1;
   private perspectiveFocal: number | null = null;
@@ -77,7 +97,7 @@ export class Camera {
 
   projectionView(): ProjectionView {
     return { cameraX: this.x, cameraY: this.y, screenW: this.screenW, screenH: this.screenH,
-      tilt: this.yScale, focalLength: this.perspectiveFocal ?? 1800, zoom: 1.2,
+      tilt: this.yScale, focalLength: this.perspectiveFocal ?? 1800, zoom: this.zoom,
       shakeX: this.shakeX, shakeY: this.shakeY };
   }
 
@@ -125,10 +145,13 @@ export class Camera {
     if (this.smoothing <= 0) {
       this.x = this.targetX;
       this.y = this.targetY;
+      this.zoom = this.targetZoom;
     } else {
       const alpha = 1 - Math.exp(-this.smoothing * dt);
       this.x += (this.targetX - this.x) * alpha;
       this.y += (this.targetY - this.y) * alpha;
+      const zoomAlpha = 1 - Math.exp(-12 * dt);
+      this.zoom += (this.targetZoom - this.zoom) * zoomAlpha;
     }
     this._clampToBounds();
     this._updateShake(dt);
@@ -159,11 +182,20 @@ export class Camera {
 
   private _clampToBounds(): void {
     if (!this.bounds) return;
-    const halfW = this.screenW / 2;
+    const effectiveZoom = Math.max(0.1, this.zoom);
+    const halfW = this.screenW / (2 * effectiveZoom);
     // With the tilted view, more world fits vertically: divide by the tilt.
-    const halfH = this.screenH / (2 * this.yScale);
-    this.x = Math.max(this.bounds.x + halfW, Math.min(this.bounds.x + this.bounds.width - halfW, this.x));
-    this.y = Math.max(this.bounds.y + halfH, Math.min(this.bounds.y + this.bounds.height - halfH, this.y));
+    const halfH = this.screenH / (2 * this.yScale * effectiveZoom);
+    if (this.bounds.width >= halfW * 2) {
+      this.x = Math.max(this.bounds.x + halfW, Math.min(this.bounds.x + this.bounds.width - halfW, this.x));
+    } else {
+      this.x = this.bounds.x + this.bounds.width / 2;
+    }
+    if (this.bounds.height >= halfH * 2) {
+      this.y = Math.max(this.bounds.y + halfH, Math.min(this.bounds.y + this.bounds.height - halfH, this.y));
+    } else {
+      this.y = this.bounds.y + this.bounds.height / 2;
+    }
   }
 
   /** Convert world position to screen position */
@@ -171,8 +203,8 @@ export class Camera {
     if (this.worldToScreenOverride) return this.worldToScreenOverride(wx, wy);
     if (this.perspectiveFocal !== null) return projectGround(wx, wy, this.projectionView());
     return {
-      x: wx - this.x + this.screenW / 2 + this.shakeX,
-      y: (wy - this.y) * this.yScale + this.screenH / 2 + this.shakeY,
+      x: (wx - this.x) * this.zoom + this.screenW / 2 + this.shakeX,
+      y: (wy - this.y) * this.yScale * this.zoom + this.screenH / 2 + this.shakeY,
     };
   }
 
@@ -180,16 +212,22 @@ export class Camera {
   screenToWorld(sx: number, sy: number): { x: number; y: number } {
     if (this.screenToWorldOverride) return this.screenToWorldOverride(sx, sy);
     if (this.perspectiveFocal !== null) return unprojectGround(sx, sy, this.projectionView());
+    const effectiveZoom = Math.max(0.001, this.zoom);
     return {
-      x: sx - this.screenW / 2 + this.x - this.shakeX,
-      y: (sy - this.screenH / 2 - this.shakeY) / this.yScale + this.y,
+      x: (sx - this.screenW / 2 - this.shakeX) / effectiveZoom + this.x,
+      y: (sy - this.screenH / 2 - this.shakeY) / (this.yScale * effectiveZoom) + this.y,
     };
   }
 
   /** Apply camera transform to a PixiJS container */
-  applyToContainer(container: { x: number; y: number; scale: { y: number } }): void {
-    container.x = this.screenW / 2 - this.x + this.shakeX;
-    container.y = this.screenH / 2 - this.y * this.yScale + this.shakeY;
-    container.scale.y = this.yScale;
+  applyToContainer(container: { x: number; y: number; scale: { x?: number; y: number; set?(x: number, y: number): void } }): void {
+    container.x = this.screenW / 2 - this.x * this.zoom + this.shakeX;
+    container.y = this.screenH / 2 - this.y * this.yScale * this.zoom + this.shakeY;
+    if (typeof container.scale.set === 'function') {
+      container.scale.set(this.zoom, this.yScale * this.zoom);
+    } else {
+      if ('x' in container.scale) container.scale.x = this.zoom;
+      container.scale.y = this.yScale * this.zoom;
+    }
   }
 }

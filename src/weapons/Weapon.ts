@@ -7,6 +7,7 @@
  */
 
 import type { World } from '../game/World';
+import type { WeaponId } from '../game/GameState';
 import { MUZZLE_OFFSET } from '../game/World';
 import { WEAPONS, type WeaponDef } from '../config/weapons';
 import {
@@ -136,6 +137,22 @@ function finishReload(world: World): void {
   player.reloadTimer = 0;
   state.reloadTimer = 0;
   world.events.onReloadFinished();
+}
+
+export const WEAPON_SLOTS: WeaponId[] = ['pistol', 'shotgun', 'smg', 'rifle', 'grenade', 'rocket'];
+
+/** Switch to a weapon by weapon slot index (0 = pistol, 1 = shotgun, etc). Returns true if changed. */
+export function switchWeaponBySlot(world: World, slotIndex: number): boolean {
+  const targetId = WEAPON_SLOTS[slotIndex];
+  if (!targetId || !world.state.unlockedWeapons.includes(targetId)) return false;
+  const { state, player } = world;
+  if (targetId === state.activeWeapon) return false;
+  state.activeWeapon = targetId;
+  player.activeWeapon = targetId;
+  player.reloading = false;
+  state.reloading = false;
+  player.reloadTimer = 0;
+  return true;
 }
 
 /** Switch to a weapon by unlocked-index (0-based). Returns true if changed. */

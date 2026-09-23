@@ -55,6 +55,8 @@ export interface GameEvents {
   onExplosion(x: number, y: number, radius: number): void;
   /** Boss summoned adds. */
   onBossSummon(x: number, y: number): void;
+  /** Special weapon unlocked via gameplay / kill count */
+  onWeaponUnlocked(id: WeaponId, message: string): void;
 }
 
 export interface World {

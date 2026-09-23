@@ -20,6 +20,9 @@ export interface InputState {
   weapon1: boolean;
   weapon2: boolean;
   weapon3: boolean;
+  weapon4: boolean;
+  weapon5: boolean;
+  weapon6: boolean;
   wheelUp: boolean;
   wheelDown: boolean;
   mutePressed: boolean;
@@ -40,6 +43,7 @@ export class InputSystem {
     reloadPressed: false,
     pausePressed: false,
     weapon1: false, weapon2: false, weapon3: false,
+    weapon4: false, weapon5: false, weapon6: false,
     wheelUp: false, wheelDown: false,
     mutePressed: false,
     debugToggle: false,
@@ -78,6 +82,9 @@ export class InputSystem {
     this.state.weapon1 = false;
     this.state.weapon2 = false;
     this.state.weapon3 = false;
+    this.state.weapon4 = false;
+    this.state.weapon5 = false;
+    this.state.weapon6 = false;
     this.state.wheelUp = false;
     this.state.wheelDown = false;
     this.state.mutePressed = false;
@@ -134,6 +141,9 @@ export class InputSystem {
       case '1': this.state.weapon1 = true; break;
       case '2': this.state.weapon2 = true; break;
       case '3': this.state.weapon3 = true; break;
+      case '4': this.state.weapon4 = true; break;
+      case '5': this.state.weapon5 = true; break;
+      case '6': this.state.weapon6 = true; break;
     }
   };
 

@@ -79,7 +79,7 @@ export interface GameState {
   settings: GameSettings;
 }
 
-export type WeaponId = 'pistol' | 'shotgun' | 'smg' | 'rifle';
+export type WeaponId = 'pistol' | 'shotgun' | 'smg' | 'rifle' | 'grenade' | 'rocket';
 export type UpgradeId = 'maxHp' | 'speed' | 'damage' | 'reloadSpeed' | 'fireRate' | 'maxAmmo';
 
 export interface GameSettings {
@@ -132,8 +132,8 @@ export function createGameState(): GameState {
 
     activeWeapon: 'pistol',
     unlockedWeapons: ['pistol'],
-    magazines: { pistol: 12, shotgun: 6, smg: 30, rifle: 10 },
-    reserves: { pistol: 72, shotgun: 30, smg: 180, rifle: 60 },
+    magazines: { pistol: 12, shotgun: 6, smg: 30, rifle: 10, grenade: 4, rocket: 2 },
+    reserves: { pistol: 72, shotgun: 30, smg: 180, rifle: 60, grenade: 20, rocket: 10 },
     reloading: false,
     reloadTimer: 0,
     fireCooldown: 0,

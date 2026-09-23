@@ -82,6 +82,32 @@ export const WEAPONS: Record<WeaponId, WeaponDef> = {
     recoilKick: 70,
     pierce: 2,             // punches through up to 2 extra enemies
   },
+  grenade: {
+    id: 'grenade',
+    name: 'GRENADE',
+    damage: 110,
+    fireIntervalMs: 650,
+    rangeUnits: 460,
+    magazineSize: 4,
+    reserveAmmo: 20,
+    reloadMs: 1800,
+    projectileSpeed: 600,
+    automatic: false,
+    recoilKick: 95,
+  },
+  rocket: {
+    id: 'rocket',
+    name: 'ROCKET',
+    damage: 160,
+    fireIntervalMs: 950,
+    rangeUnits: 950,
+    magazineSize: 2,
+    reserveAmmo: 10,
+    reloadMs: 2200,
+    projectileSpeed: 750,
+    automatic: false,
+    recoilKick: 160,
+  },
 };
 
 /** Missions that unlock weapons on first completion */
@@ -89,4 +115,6 @@ export const WEAPON_UNLOCK_MISSIONS: Partial<Record<WeaponId, number>> = {
   shotgun: 4,
   smg: 7,
   rifle: 12,
+  grenade: 14,
+  rocket: 15,
 };

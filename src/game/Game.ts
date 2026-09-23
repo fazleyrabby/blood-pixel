@@ -32,6 +32,7 @@ import {
   tickWeapon,
   startReload,
   switchWeapon,
+  switchWeaponBySlot,
   cycleWeapon,
 } from '../weapons/Weapon';
 import { createPlayer, type PlayerEntity } from '../entities/Player';
@@ -670,6 +671,10 @@ export class Game {
         this.audio.play('boss_summon');
         this.addShake(5, 0.3);
       },
+      onWeaponUnlocked: (_id, message) => {
+        this.hud.showBanner(message, '#ffff44');
+        this.audio.play('levelup');
+      },
     };
   }
 
@@ -866,12 +871,17 @@ export class Game {
       }
     }
 
-    // ── Weapon switching ──
-    if (s.weapon1) switchWeapon(world, 0);
-    if (s.weapon2) switchWeapon(world, 1);
-    if (s.weapon3) switchWeapon(world, 2);
-    if (s.wheelUp) cycleWeapon(world, 1);
-    if (s.wheelDown) cycleWeapon(world, -1);
+    // ── Weapon switching (top numbers 1-6) ──
+    if (s.weapon1) switchWeaponBySlot(world, 0);
+    if (s.weapon2) switchWeaponBySlot(world, 1);
+    if (s.weapon3) switchWeaponBySlot(world, 2);
+    if (s.weapon4) switchWeaponBySlot(world, 3);
+    if (s.weapon5) switchWeaponBySlot(world, 4);
+    if (s.weapon6) switchWeaponBySlot(world, 5);
+
+    // ── Mouse scroll zoom in / out ──
+    if (s.wheelUp) this.camera.adjustZoom(0.12);
+    if (s.wheelDown) this.camera.adjustZoom(-0.12);
     if (s.reloadPressed) startReload(world);
 
     // ── Firing ──
@@ -1249,7 +1259,7 @@ export class Game {
   }
 
   private cheatUnlockWeapons(): void {
-    for (const w of ['pistol', 'shotgun', 'smg', 'rifle'] as WeaponId[]) {
+    for (const w of ['pistol', 'shotgun', 'smg', 'rifle', 'grenade', 'rocket'] as WeaponId[]) {
       if (!this.state.unlockedWeapons.includes(w)) this.state.unlockedWeapons.push(w);
     }
     this.commit();
