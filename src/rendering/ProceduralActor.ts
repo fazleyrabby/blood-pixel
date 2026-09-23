@@ -73,12 +73,15 @@ export class ProceduralActor extends Container {
         fill(this.art, 18, 16, 28, 8, 0x58d5df);
         fill(this.art, 21, 15, 22, 3, 0x2b4246);
         fill(this.art, 25, 47, 14, 6, 0xda9455);
-        // Weapon is a separate, centered layer so its muzzle follows aim.
-        fill(this.weapon, 31, 43, 27, 8, 0x303939);
-        fill(this.weapon, 49, 44, 19, 6, 0x899897);
-        fill(this.weapon, 66, 45, 8, 3, 0xeeb76c);
-        this.weapon.pivot.set(32, 47);
-        this.weapon.position.set(32, 47);
+        // Mount the weapon at the character's forward hand. The local origin
+        // is the grip, so rotation keeps the grip in the hand while the
+        // barrel follows the aim direction.
+        fill(this.weapon, 0, -4, 18, 8, 0x303939);
+        fill(this.weapon, 14, -3, 20, 6, 0x899897);
+        fill(this.weapon, 34, -2, 8, 3, 0xeeb76c);
+        fill(this.weapon, 7, 3, 6, 9, 0x303939);
+        this.weapon.pivot.set(0, 0);
+        this.weapon.position.set(49, 52);
         break;
       case 'walker':
         legs(0x55574a);
