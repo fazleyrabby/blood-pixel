@@ -12,100 +12,149 @@ export function buildVoxelCharacterGeometry(type: VoxelCharacterType): THREE.Buf
   const box = (x0: number, x1: number, y0: number, y1: number, z0: number, z1: number, c: number) => {
     for (let x = x0; x <= x1; x++) for (let y = y0; y <= y1; y++) for (let z = z0; z <= z1; z++) put(x, y, z, c);
   };
-  const colors = {
-    player: { skin: 0xc7a486, coat: 0x766e59, shirt: 0xc1b299, pants: 0x4c514c, boot: 0x353631, hair: 0x433a31, eye: 0x242e2d, wound: 0x974f3d },
-    walker: { skin: 0xa5aa85, coat: 0x716a58, shirt: 0xc0b59a, pants: 0x525548, boot: 0x414139, hair: 0x5e5548, eye: 0xd4ad69, wound: 0x8f4037 },
-    runner: { skin: 0xb99a79, coat: 0x8b5948, shirt: 0x9c8066, pants: 0x4d493e, boot: 0x3b3632, hair: 0x45392e, eye: 0xf0c783, wound: 0x9e4738 },
-    brute: { skin: 0x996c65, coat: 0x634847, shirt: 0x88635a, pants: 0x483d3b, boot: 0x302b2a, hair: 0x413231, eye: 0xefb983, wound: 0xa3433c },
-    spitter: { skin: 0xaaa47d, coat: 0x6c625e, shirt: 0x857e65, pants: 0x4d4d43, boot: 0x383932, hair: 0x514b42, eye: 0xd4dd8b, wound: 0xa8ba68 },
-    crawler: { skin: 0xa0a684, coat: 0x665b4b, shirt: 0xb5a384, pants: 0x4c4b40, boot: 0x34342d, hair: 0x4d453c, eye: 0xe0c17b, wound: 0x8d4937 },
-    armored: { skin: 0xa1a38c, coat: 0x636c6c, shirt: 0x87918c, pants: 0x484e4e, boot: 0x303637, hair: 0x5d6260, eye: 0xd9bf7d, wound: 0x8a4940 },
-    exploder: { skin: 0xb58d72, coat: 0x7d5a47, shirt: 0x99705b, pants: 0x51443b, boot: 0x35312b, hair: 0x5a3c32, eye: 0xf1c277, wound: 0xba5c3c },
-    abomination: { skin: 0x8b6261, coat: 0x674244, shirt: 0x82484a, pants: 0x44383a, boot: 0x2f292b, hair: 0x483235, eye: 0xf1ad87, wound: 0xb94b46 },
-  }[type];
-  const { skin, coat, shirt, pants, boot, hair, eye, wound } = colors;
+  const bone = 0xd9c9a3;
+  const eye = 0xffd46f;
+  const dark = 0x242b2d;
+  const blood = 0x9f3e39;
+  const acid = 0xb8ed45;
+  const edge = 0xe5c99b;
 
-  // Wide head, compact layered body, joined arms and legs.
-  box(-3, -1, 0, 5, -2, 2, pants);
-  box(1, 3, 0, 5, -2, 2, pants);
-  box(-4, -1, 0, 1, 1, 4, boot);
-  box(1, 4, 0, 1, 1, 4, boot);
-  box(-4, 4, 5, 11, -3, 3, coat);
-  box(-2, 2, 6, 10, 4, 4, shirt);
-  box(-6, -4, 6, 11, -2, 2, type === 'player' ? coat : skin);
-  box(4, 6, 6, 11, -2, 2, type === 'player' ? coat : skin);
-  box(-6, -4, 5, 6, 2, 3, skin);
-  box(4, 6, 5, 6, 2, 3, skin);
-  box(-5, 5, 12, 19, -3, 3, skin);
-  box(-5, 5, 19, 20, -3, 3, hair);
-  box(-5, 5, 14, 18, -4, -3, hair);
-  box(-5, -4, 17, 19, -2, 3, hair);
-  box(4, 5, 17, 19, -2, 3, hair);
-  box(-3, -2, 16, 17, 4, 4, eye);
-  box(2, 3, 16, 17, 4, 4, eye);
-  box(-1, 1, 14, 14, 4, 4, type === 'player' ? 0x8a6c5a : wound);
-  box(-2, 2, 12, 12, 4, 4, type === 'player' ? 0x6e5747 : 0x3f302a);
-
-  if (type === 'player') {
-    // Cap, scarf, pack, two hands around a centered rifle.
-    box(-5, 5, 20, 21, -3, 3, 0x51594c);
-    box(-5, 5, 19, 19, 3, 5, 0x51594c);
-    box(-4, 4, 11, 12, -3, 4, 0xa79a78);
-    box(-3, 3, 6, 11, -5, -4, 0x585548);
-    box(-5, -4, 8, 10, 3, 6, coat);
-    box(4, 5, 8, 10, 3, 6, coat);
-    box(-4, -3, 8, 9, 6, 7, skin);
-    box(3, 4, 8, 9, 6, 7, skin);
-    box(-1, 1, 9, 10, 5, 12, 0x353a39);
-    box(-1, 1, 10, 10, 8, 9, 0x7b6650);
-    box(0, 0, 9, 9, 13, 14, 0xaca89b);
-    box(-1, 0, 6, 8, 5, 6, 0x6b493b);
-  } else {
-    // Damage and asymmetry prevent a toy-like uniform silhouette.
-    box(-3, -1, 7, 9, 4, 4, wound);
-    box(-4, -4, 6, 8, 3, 4, skin);
-    box(4, 5, 8, 9, 2, 3, coat);
-    put(0, 18, 4, hair);
-    put(3, 13, 4, wound);
-  }
-
-  if (type === 'runner') {
-    box(-4, 4, 19, 21, -3, 2, 0x654637);
-    box(-5, 5, 18, 18, 3, 5, 0x654637);
-    box(-6, -6, 10, 12, 0, 2, coat);
-  } else if (type === 'brute' || type === 'abomination') {
-    box(-8, -5, 8, 14, -3, 3, skin);
-    box(5, 8, 8, 14, -3, 3, skin);
-    box(-7, 7, 7, 13, -4, 3, coat);
-    box(-6, 6, 12, 19, -4, 4, skin);
-    box(-2, -1, 16, 17, 5, 5, eye);
-    box(2, 3, 16, 17, 5, 5, eye);
-    box(-3, -2, 20, 23, -1, 0, 0xd0bd98);
-    box(2, 3, 20, 23, -1, 0, 0xd0bd98);
-    if (type === 'abomination') {
-      box(-9, -7, 5, 11, -3, 3, skin);
-      box(7, 9, 5, 11, -3, 3, skin);
-      box(-4, 4, 7, 11, 4, 5, wound);
+  // Each enemy is built from a different outline. Bright identifying marks
+  // also reach the top planes, where the isometric camera can read them.
+  switch (type) {
+    case 'player': {
+      const armor = 0xe2d6bb, coat = 0x69898b, leather = 0x9a6547, visor = 0x79e7ee;
+      box(-3, -1, 0, 6, -2, 2, 0x303a41);
+      box(1, 3, 0, 6, -2, 2, 0x303a41);
+      box(-4, -1, 0, 1, 1, 4, dark); box(1, 4, 0, 1, 1, 4, dark);
+      box(-5, 5, 6, 13, -3, 3, coat);
+      box(-5, 5, 12, 13, -3, 3, armor);
+      box(-3, 3, 8, 12, 4, 4, armor);
+      box(-4, 4, 7, 12, -6, -4, leather); // pack
+      box(-3, 3, 11, 13, -7, -6, 0xd99a59);
+      box(-7, -5, 8, 12, -3, 3, armor); box(5, 7, 8, 12, -3, 3, armor);
+      box(-7, -5, 11, 13, -3, 3, 0xf0e5ce); box(5, 7, 11, 13, -3, 3, 0xf0e5ce);
+      box(-6, 6, 14, 21, -4, 4, 0xc59d80); // helmet + face
+      box(-7, 7, 20, 22, -4, 4, armor);
+      box(-7, 7, 19, 19, 3, 6, armor); // helmet brim
+      box(-5, 5, 16, 18, 5, 5, visor);
+      box(-4, 4, 21, 22, -4, -3, 0xd69052);
+      // Both forearms join at the receiver instead of a floating side gun.
+      box(-6, -4, 8, 10, 3, 8, coat); box(4, 6, 8, 10, 3, 8, coat);
+      box(-5, -3, 8, 9, 8, 10, 0xc59d80); box(3, 5, 8, 9, 8, 10, 0xc59d80);
+      box(-2, 2, 9, 11, 5, 15, dark);
+      box(-2, 2, 11, 11, 7, 12, 0xb9c4bb);
+      box(-1, 1, 10, 10, 16, 19, 0x343b3a);
+      box(0, 0, 11, 11, 19, 20, 0xebba73);
+      break;
     }
-  } else if (type === 'spitter') {
-    box(-4, 4, 7, 12, -6, -4, 0x9faf69);
-    box(-2, 2, 14, 14, 5, 6, 0xced993);
-    box(-1, 1, 11, 12, 4, 5, 0x9faf69);
-  } else if (type === 'armored') {
-    box(-5, 5, 18, 21, -4, 3, 0x747f7e);
-    box(-5, 5, 17, 17, 3, 5, 0x747f7e);
-    box(-5, 5, 8, 12, 4, 5, 0x87928e);
-    box(-7, -6, 8, 13, -3, 3, 0x7e8988);
-    box(6, 7, 8, 13, -3, 3, 0x7e8988);
-    box(-2, 2, 13, 14, 5, 5, 0x323938);
-  } else if (type === 'exploder') {
-    box(-5, 5, 6, 12, 4, 7, 0xb46f4d);
-    box(-3, 3, 8, 10, 8, 8, 0xe0a66e);
-    box(-1, 1, 9, 11, 9, 9, 0x9b4439);
-  } else if (type === 'crawler') {
-    box(-5, 5, 5, 8, -4, 5, coat);
-    box(-7, -5, 3, 5, 2, 6, skin);
-    box(5, 7, 3, 5, 2, 6, skin);
+    case 'walker': {
+      const skin = 0x8daa82, coat = 0x66584e;
+      box(-3, -1, 0, 5, -2, 2, 0x474b3e); box(1, 3, 0, 6, -2, 2, 0x474b3e);
+      box(-4, 4, 5, 11, -3, 3, coat);
+      box(-5, 5, 10, 13, -3, 3, skin);
+      box(-6, 3, 13, 19, -3, 4, skin); // lopsided head
+      box(-6, 3, 18, 20, -3, 1, 0x505043);
+      box(-4, -3, 16, 17, 5, 5, eye); box(0, 1, 16, 17, 5, 5, eye);
+      box(-8, -6, 5, 13, -1, 2, skin); box(5, 7, 2, 11, 0, 3, skin);
+      box(-8, -6, 2, 4, 2, 5, blood); box(-2, 1, 10, 11, 4, 5, blood);
+      break;
+    }
+    case 'runner': {
+      const flesh = 0xc88658, cloth = 0x713f3a;
+      box(-5, -4, 0, 7, -2, 3, dark); box(4, 5, 0, 7, -4, 1, dark);
+      box(-5, -3, 0, 2, 2, 5, 0xd6a16a); box(3, 5, 0, 2, -5, -2, 0xd6a16a);
+      box(-3, 3, 7, 14, -3, 2, cloth);
+      box(-4, 4, 11, 14, -2, 3, flesh);
+      box(-4, 4, 15, 20, 0, 5, flesh); // head thrust ahead
+      box(-5, 5, 19, 21, -1, 4, 0xe5a163);
+      box(-3, 3, 17, 18, 6, 6, eye);
+      box(-6, -5, 5, 13, 1, 7, flesh); box(5, 6, 4, 12, 0, 6, flesh);
+      box(-6, -4, 4, 5, 7, 9, bone); box(4, 6, 3, 4, 6, 8, bone);
+      box(-2, 2, 12, 14, -4, -3, 0xe5a163);
+      break;
+    }
+    case 'brute': {
+      const flesh = 0xb65a54, armor = 0x694b49;
+      box(-6, -2, 0, 7, -3, 3, 0x55433e); box(2, 6, 0, 7, -3, 3, 0x55433e);
+      box(-9, 9, 7, 16, -5, 5, armor);
+      box(-12, -7, 13, 19, -5, 5, flesh); box(7, 12, 13, 19, -5, 5, flesh);
+      box(-14, -10, 3, 13, -3, 5, flesh); box(10, 14, 3, 13, -3, 5, flesh);
+      box(-15, -9, 2, 5, 2, 7, 0x7d3838); box(9, 15, 2, 5, 2, 7, 0x7d3838);
+      box(-4, 4, 17, 22, -2, 3, flesh); // small recessed head
+      box(-2, -1, 19, 20, 4, 4, eye); box(1, 2, 19, 20, 4, 4, eye);
+      box(-10, 10, 15, 17, -5, -3, 0xd17964);
+      box(-7, 7, 9, 12, 6, 6, blood);
+      break;
+    }
+    case 'spitter': {
+      const skin = 0x7c9b7d, shell = 0x385d58;
+      box(-3, -1, 0, 6, -2, 2, dark); box(1, 3, 0, 6, -2, 2, dark);
+      box(-6, 6, 6, 13, -5, 3, shell);
+      box(-8, 8, 10, 17, -9, -3, acid); // glowing dorsal sacs
+      box(-7, 7, 15, 17, -8, -2, 0xe5f59a);
+      box(-4, 4, 13, 20, 1, 5, skin);
+      box(-3, 3, 16, 17, 6, 7, acid); // toxic mouth
+      box(-2, 2, 18, 19, 6, 6, dark);
+      box(-8, -6, 5, 12, -2, 3, skin); box(6, 8, 5, 12, -2, 3, skin);
+      break;
+    }
+    case 'crawler': {
+      const skin = 0xa097a0, spine = 0x51414e;
+      box(-5, 5, 3, 8, -6, 6, spine);
+      box(-6, 6, 8, 10, -5, 3, skin);
+      box(-4, 4, 7, 11, 6, 11, skin);
+      box(-3, -2, 9, 10, 12, 12, eye); box(2, 3, 9, 10, 12, 12, eye);
+      box(-10, -6, 1, 5, 4, 12, skin); box(6, 10, 1, 5, 4, 12, skin);
+      box(-12, -10, 0, 2, 10, 14, bone); box(10, 12, 0, 2, 10, 14, bone);
+      box(-8, -5, 1, 4, -10, -5, skin); box(5, 8, 1, 4, -10, -5, skin);
+      box(-3, 3, 10, 11, -5, 5, blood);
+      break;
+    }
+    case 'armored': {
+      const steel = 0x7599a5, plate = 0x364a53;
+      box(-4, -1, 0, 7, -2, 2, dark); box(1, 4, 0, 7, -2, 2, dark);
+      box(-6, 6, 6, 16, -4, 4, plate);
+      box(-7, 7, 15, 17, -4, 4, steel);
+      box(-5, 5, 9, 14, 5, 6, steel);
+      box(-8, 8, 17, 23, -4, 4, plate); // visor helmet
+      box(-7, 7, 22, 24, -4, 3, steel);
+      box(-5, 5, 19, 20, 5, 5, 0x85e1e8);
+      box(-13, -7, 6, 16, -4, 5, steel); // shield shoulder
+      box(-14, -10, 3, 11, 2, 8, plate);
+      box(7, 10, 7, 15, -2, 3, steel);
+      box(-6, 6, 11, 13, -5, -4, 0xb7c6bd);
+      break;
+    }
+    case 'exploder': {
+      const hide = 0x8f5445, glow = 0xf5a744;
+      box(-3, -1, 0, 5, -2, 2, dark); box(1, 3, 0, 5, -2, 2, dark);
+      box(-6, 6, 5, 13, -5, 4, hide);
+      box(-10, 10, 7, 16, 0, 9, 0xb65d3e); // swollen abdomen
+      box(-8, 8, 15, 18, 2, 8, glow);
+      box(-5, 5, 9, 13, 10, 11, glow);
+      box(-4, 4, 17, 22, -4, 2, hide);
+      box(-3, 3, 20, 21, 3, 3, eye);
+      box(-9, -7, 4, 12, -2, 2, hide); box(7, 9, 4, 12, -2, 2, hide);
+      box(-5, 5, 12, 15, -6, -6, 0xf0bb60);
+      break;
+    }
+    case 'abomination': {
+      const hide = 0x59425b, muscle = 0x9f4969, glow = 0xd56bb0;
+      box(-7, -2, 0, 9, -4, 4, hide); box(2, 7, 0, 9, -4, 4, hide);
+      box(-10, 10, 8, 19, -6, 6, hide);
+      box(-14, 11, 17, 23, -5, 5, muscle);
+      box(-17, -10, 11, 24, -5, 4, muscle); // giant left arm
+      box(-19, -14, 1, 11, -3, 7, muscle);
+      box(9, 13, 10, 19, -4, 5, hide);
+      box(11, 16, 6, 12, 3, 9, muscle);
+      box(-7, 7, 22, 30, -3, 5, hide);
+      box(-5, 5, 25, 27, 6, 7, glow);
+      box(-9, -6, 28, 33, -2, 1, bone); box(6, 9, 28, 33, -2, 1, bone);
+      box(-9, 9, 19, 21, -7, -6, glow);
+      box(-7, 7, 10, 14, 7, 8, blood);
+      break;
+    }
   }
 
   const positions: number[] = [], normals: number[] = [], vertexColors: number[] = [], indices: number[] = [];

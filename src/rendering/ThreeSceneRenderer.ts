@@ -6,13 +6,13 @@ import type { ZombieEntity } from '../entities/Zombie';
 import type { ProjectileEntity } from '../entities/Projectile';
 import type { PickupEntity } from '../entities/Pickup';
 import type { Camera } from '../game/Camera';
-import type { World } from '../game/World';
+import { ZOMBIE_DEATH_SEC, ZOMBIE_SPAWN_SEC, type World } from '../game/World';
 import type { SceneRenderer } from './SceneRenderer';
 import { enemyTint } from './palette';
 import { buildVoxelCharacterGeometry, type VoxelCharacterType } from './voxelCharacters';
 
-// The silhouettes come from CharacterRenderer's ASCII frames. Each occupied
-// glyph cell becomes one shaded voxel column in a camera-facing 3D cluster.
+// The billboard comparison still uses the old glyph frames; the default
+// characters are authored as full 3D silhouettes in voxelCharacters.ts.
 const FRAMES: Record<string, string[]> = {
   player: ['  @  ', ' /|\\ ', ' / \\ '],
   walker: [' ███ ', '█x x█', ' █▀█ ', '▄███▄'],
@@ -40,10 +40,12 @@ export class ThreeSceneRenderer implements SceneRenderer {
   private readonly renderer: THREE.WebGLRenderer;
   private readonly scene = new THREE.Scene();
   private readonly camera3d = new THREE.PerspectiveCamera(58, 1, 1, 3600);
+  private readonly isoCamera = new THREE.OrthographicCamera(-800, 800, 450, -450, 1, 3600);
   private readonly firstPersonWeapon = new THREE.Group();
   private readonly worldGroup = new THREE.Group();
   private readonly characterMeshes = new Map<VoxelCharacterType, THREE.InstancedMesh>();
   private readonly dummy = new THREE.Object3D();
+  private readonly actorColor = new THREE.Color();
   private readonly projectiles = new Map<number, THREE.Mesh>();
   private readonly pickups = new Map<number, THREE.Mesh>();
   private readonly actorSprites = new Map<number, THREE.Sprite>();
@@ -89,13 +91,14 @@ export class ThreeSceneRenderer implements SceneRenderer {
     document.getElementById('app')!.insertBefore(this.renderer.domElement, document.getElementById('ui-layer'));
     app.canvas.style.visibility = 'hidden';
 
-    this.scene.background = color(0x8b8c7d);
-    this.scene.fog = new THREE.FogExp2(0x8b8c7d, 0.00031);
+    this.scene.background = color(0x617674);
+    this.scene.fog = new THREE.FogExp2(0x617674, 0.00015);
     this.scene.add(this.worldGroup);
     this.scene.add(this.camera3d);
+    this.scene.add(this.isoCamera);
     this.buildFirstPersonWeapon();
-    this.scene.add(new THREE.HemisphereLight(0xd9d7c5, 0x626455, 2.5));
-    const sun = new THREE.DirectionalLight(0xffe7c6, 2.8);
+    this.scene.add(new THREE.HemisphereLight(0xdce6e2, 0x3d4540, 1.8));
+    const sun = new THREE.DirectionalLight(0xffdfb1, 2.1);
     sun.position.set(-280, 580, 360);
     sun.castShadow = true;
     sun.shadow.mapSize.set(1024, 1024);
@@ -186,8 +189,8 @@ export class ThreeSceneRenderer implements SceneRenderer {
     this.player = player;
     this.arena = arena;
     const ground = new THREE.Mesh(
-      new THREE.PlaneGeometry(arena.worldWidth, arena.worldHeight),
-      new THREE.MeshStandardMaterial({ color: arena.id === 'forest' ? 0x55594b : arena.id === 'industrial' ? 0x6a695f : 0x676b5c, roughness: 1, metalness: 0 }),
+      new THREE.PlaneGeometry(6000, 6000),
+      new THREE.MeshStandardMaterial({ color: arena.id === 'forest' ? 0x394642 : arena.id === 'industrial' ? 0x41494b : 0x404946, roughness: 1, metalness: 0 }),
     );
     ground.rotation.x = -Math.PI / 2;
     ground.position.set(arena.worldWidth / 2, -1, arena.worldHeight / 2);
@@ -243,7 +246,7 @@ export class ThreeSceneRenderer implements SceneRenderer {
       new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 1 }), 240,
     );
     const dummy = new THREE.Object3D();
-    const colors = [0x555747, 0x727261, 0x4a4c43, 0x777565, 0x5e5a4c];
+    const colors = [0x34443f, 0x536055, 0x384744, 0x655e4f, 0x4a5149];
     for (let i = 0; i < 240; i++) {
       const x = rand(i * 3 + 2) * arena.worldWidth;
       const z = rand(i * 3 + 3) * arena.worldHeight;
@@ -269,7 +272,7 @@ export class ThreeSceneRenderer implements SceneRenderer {
       dummy.rotation.set(rand(i * 17 + 8), rand(i * 19 + 1) * Math.PI, rand(i * 23 + 2));
       dummy.scale.set(r, r * 0.55, r * 0.7);
       dummy.updateMatrix(); debris.setMatrixAt(i, dummy.matrix);
-      debris.setColorAt(i, color([0x777365, 0x4d4b42, 0x8b8170][i % 3]));
+      debris.setColorAt(i, color([0x6b6d63, 0x424b49, 0x847a69][i % 3]));
     }
     debris.castShadow = true; debris.frustumCulled = false; this.worldGroup.add(debris);
 
@@ -287,7 +290,7 @@ export class ThreeSceneRenderer implements SceneRenderer {
         dummy.scale.set(horizontal ? 64 + rand(i * 11) * 42 : 55 + rand(i * 11) * 30,
           0.45, horizontal ? 33 + rand(i * 13) * 25 : 60 + rand(i * 13) * 40);
         dummy.updateMatrix(); slabs.setMatrixAt(i, dummy.matrix);
-        slabs.setColorAt(i, color([0x52564f, 0x77796d, 0x62665b, 0x494e49][i % 4]));
+        slabs.setColorAt(i, color([0x303a39, 0x535d59, 0x424d4b, 0x364140][i % 4]));
       }
       slabs.receiveShadow = true; slabs.frustumCulled = false; this.worldGroup.add(slabs);
     }
@@ -302,7 +305,7 @@ export class ThreeSceneRenderer implements SceneRenderer {
   }
 
   private addDeadTree(x: number, z: number, scale: number): void {
-    const bark = new THREE.MeshStandardMaterial({ color: 0x493e35, roughness: 1 });
+    const bark = new THREE.MeshStandardMaterial({ color: 0x2e302c, roughness: 1 });
     const limb = (x1: number, y1: number, z1: number, x2: number, y2: number, z2: number, r: number) => {
       const a = new THREE.Vector3(x1, y1, z1), b = new THREE.Vector3(x2, y2, z2);
       const delta = b.clone().sub(a);
@@ -320,8 +323,8 @@ export class ThreeSceneRenderer implements SceneRenderer {
   }
 
   private addRuin(x: number, z: number, w: number, d: number): void {
-    const concrete = new THREE.MeshStandardMaterial({ color: 0x8b897b, roughness: 1 });
-    const scorched = new THREE.MeshStandardMaterial({ color: 0x5e5d54, roughness: 1 });
+    const concrete = new THREE.MeshStandardMaterial({ color: 0x92968a, roughness: 1 });
+    const scorched = new THREE.MeshStandardMaterial({ color: 0x46504e, roughness: 1 });
     const wall = (cx: number, cy: number, cz: number, sx: number, sy: number, sz: number, dark = false) => {
       const mesh = new THREE.Mesh(new THREE.BoxGeometry(sx, sy, sz), dark ? scorched : concrete);
       mesh.position.set(cx, cy, cz); mesh.castShadow = true; mesh.receiveShadow = true;
@@ -419,13 +422,17 @@ export class ThreeSceneRenderer implements SceneRenderer {
         return { x: p.x + Math.cos(angle) * 250, y: p.y + Math.sin(angle) * 250 };
       });
     } else {
-      const distance = this.tilt === 1 ? 690 : 510;
-      this.camera3d.position.set(camera.x + camera.offsetX, distance, camera.y + (this.tilt === 1 ? 0 : 370) + camera.offsetY);
-      this.camera3d.lookAt(camera.x, 0, camera.y);
+      const flat = this.tilt === 1;
+      this.isoCamera.up.set(0, flat ? 0 : 1, flat ? -1 : 0);
+      this.isoCamera.position.set(camera.x + (flat ? 0 : 630) + camera.offsetX,
+        flat ? 1050 : 790,
+        camera.y + (flat ? 0 : 630) + camera.offsetY);
+      this.isoCamera.lookAt(camera.x, 0, camera.y);
+      this.isoCamera.updateMatrixWorld();
       camera.setMapping(
-        (x, y) => { const v = new THREE.Vector3(x, 0, y).project(this.camera3d); return { x: (v.x+1)*camera.width/2, y: (1-v.y)*camera.height/2 }; },
+        (x, y) => { const v = new THREE.Vector3(x, 0, y).project(this.isoCamera); return { x: (v.x+1)*camera.width/2, y: (1-v.y)*camera.height/2 }; },
         (sx, sy) => {
-          this.ray.setFromCamera(new THREE.Vector2(sx / camera.width * 2 - 1, 1 - sy / camera.height * 2), this.camera3d);
+          this.ray.setFromCamera(new THREE.Vector2(sx / camera.width * 2 - 1, 1 - sy / camera.height * 2), this.isoCamera);
           const target = new THREE.Vector3();
           if (this.ray.ray.intersectPlane(this.groundPlane, target)) return { x: target.x, y: target.z };
           return { x: p.x, y: p.y - 500 };
@@ -440,6 +447,13 @@ export class ThreeSceneRenderer implements SceneRenderer {
     if (width === this.lastWidth && height === this.lastHeight) return;
     this.lastWidth = width; this.lastHeight = height;
     this.renderer.setSize(width, height);
+    const halfWidth = width * 0.58;
+    const halfHeight = height * 0.58;
+    this.isoCamera.left = -halfWidth;
+    this.isoCamera.right = halfWidth;
+    this.isoCamera.top = halfHeight;
+    this.isoCamera.bottom = -halfHeight;
+    this.isoCamera.updateProjectionMatrix();
     this.rt.setSize(Math.round(width * this.renderer.getPixelRatio()), Math.round(height * this.renderer.getPixelRatio()));
     this.postMaterial.uniforms.uSize.value.set(width, height);
   }
@@ -458,6 +472,7 @@ export class ThreeSceneRenderer implements SceneRenderer {
       }
     }
     this.flashLife -= dt; if (this.flashLife <= 0) this.flash.intensity = 0;
+    this.firstPersonWeapon.position.z = -19 + Math.max(0, this.flashLife) * 14;
     for (let i = this.particles.length - 1; i >= 0; i--) {
       const p = this.particles[i]; p.life -= dt;
       if (p.life <= 0) { this.scene.remove(p.mesh); this.particles.splice(i, 1); continue; }
@@ -469,37 +484,51 @@ export class ThreeSceneRenderer implements SceneRenderer {
       (d.sprite.material as THREE.SpriteMaterial).opacity = Math.max(0,d.life/0.7);
       if (d.life <= 0) { this.scene.remove(d.sprite); d.texture.dispose(); (d.sprite.material as THREE.Material).dispose(); this.damageTexts.splice(i,1); }
     }
+    const activeCamera = this.mode === 'first-person' ? this.camera3d : this.isoCamera;
     if (this.crt) {
-      this.renderer.setRenderTarget(this.rt); this.renderer.render(this.scene, this.camera3d);
+      this.renderer.setRenderTarget(this.rt); this.renderer.render(this.scene, activeCamera);
       this.renderer.setRenderTarget(null); this.renderer.render(this.postScene, this.postCamera);
-    } else this.renderer.render(this.scene, this.camera3d);
+    } else this.renderer.render(this.scene, activeCamera);
   }
 
   private updateVoxels(world: World): void {
     const counts = new Map<VoxelCharacterType, number>();
-    const place = (type: VoxelCharacterType, x: number, z: number, angle: number, speed: number, id: number) => {
+    const place = (type: VoxelCharacterType, x: number, z: number, angle: number, speed: number, id: number,
+      hit = false, elite = false, spawn = 0, death = 0, dead = false) => {
       const mesh = this.characterMeshes.get(type)!;
       const index = counts.get(type) ?? 0;
       if (index >= MAX_ACTORS_PER_TYPE) return;
-      const size = type === 'abomination' ? 2.05 : type === 'brute' ? 1.5 : type === 'armored' ? 1.17 : type === 'crawler' ? 0.82 : 1;
+      const size = type === 'abomination' ? 2.05 : type === 'brute' ? 1.35 : type === 'armored' ? 1.12 : type === 'crawler' ? 0.92 : 1;
       const moving = Math.min(1, speed / 60);
-      const bob = moving * Math.max(0, Math.sin(this.clock * (type === 'runner' ? 13 : 9) + id)) * 1.3;
+      const stride = Math.sin(this.clock * (type === 'runner' ? 14 : 8) + id * 0.23);
+      const bob = moving * Math.max(0, stride) * (type === 'runner' ? 1.6 : 0.75);
+      const spawnScale = spawn > 0 ? Math.max(0.2, 1 - spawn / ZOMBIE_SPAWN_SEC) : 1;
+      const deathScale = dead ? Math.max(0.12, death / ZOMBIE_DEATH_SEC) : 1;
       this.dummy.position.set(x, bob, z);
-      this.dummy.rotation.set(0, Math.PI / 2 - angle, 0);
-      this.dummy.scale.set(size, type === 'crawler' ? size * 0.66 : size, size);
+      this.dummy.rotation.set(type === 'runner' ? 0.16 + moving * 0.06 : 0,
+        Math.PI / 2 - angle, dead ? (1 - deathScale) * 0.65 : 0, 'YXZ');
+      this.dummy.scale.set(size, size * spawnScale * deathScale, size);
       this.dummy.updateMatrix();
       mesh.setMatrixAt(index, this.dummy.matrix);
+      this.actorColor.setRGB(hit ? 1.7 : elite ? 1.2 : 1,
+        hit ? 1.35 : elite ? 1.12 : 1,
+        hit ? 1.35 : elite ? 0.85 : 1);
+      mesh.setColorAt(index, this.actorColor);
       counts.set(type, index + 1);
     };
     if (this.mode === 'overhead') place('player', world.player.x, world.player.y, world.player.angle,
       Math.hypot(world.player.vx, world.player.vy), -1);
     for (const z of world.zombies) {
       if (z.state === 'dead' && z.deathTimer <= 0) continue;
-      place(z.type, z.x, z.y, z.angle, Math.hypot(z.vx, z.vy), z.id);
+      place(z.type, z.x, z.y, z.angle, Math.hypot(z.vx, z.vy), z.id,
+        z.hitFlashTimer > 0, z.elite, z.spawnTimer, z.deathTimer, z.state === 'dead');
     }
     for (const [type, mesh] of this.characterMeshes) {
       mesh.count = counts.get(type) ?? 0;
-      if (mesh.count > 0) mesh.instanceMatrix.needsUpdate = true;
+      if (mesh.count > 0) {
+        mesh.instanceMatrix.needsUpdate = true;
+        if (mesh.instanceColor) mesh.instanceColor.needsUpdate = true;
+      }
     }
   }
 

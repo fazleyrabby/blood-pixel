@@ -166,6 +166,7 @@ export class Game {
     this.camera.setShakeEnabled(s.screenShake && !s.reducedMotion);
     const tilt = s.depthTilt && !s.reducedMotion ? TILT_Y_SCALE : 1;
     this.camera.setYScale(tilt);
+    this.input.state.isometric = tilt !== 1;
     this.scene.setTilt(tilt);
     this.scene.setColorblind(s.colorblindMode);
     this.applyCrtSetting();
@@ -300,6 +301,7 @@ export class Game {
 
   private setCanvasCursor(show: boolean): void {
     const visible = show || this.cheatPanel?.style.display === 'flex';
+    if (visible && document.pointerLockElement) void document.exitPointerLock();
     document.getElementById('app')?.classList.toggle('hide-system-cursor', !visible);
     this.app.canvas.style.cursor = visible ? 'auto' : 'none';
   }
@@ -789,7 +791,7 @@ export class Game {
       this.viewMode = this.viewMode === 'overhead' ? 'first-person' : 'overhead';
       this.input.state.firstPerson = this.viewMode === 'first-person';
       this.scene.setViewMode(this.viewMode);
-      this.hud.showBanner(this.viewMode === 'first-person' ? 'FIRST PERSON · V TO SWITCH' : 'OVERHEAD · V TO SWITCH', '#e6d3af');
+      this.hud.showBanner(this.viewMode === 'first-person' ? 'FIRST PERSON · V TO SWITCH' : 'ISOMETRIC · V TO SWITCH', '#e6d3af');
     }
     if (this.input.state.hybridPressed) {
       this.actorStyle = this.actorStyle === 'voxel' ? 'billboard' : 'voxel';
@@ -831,6 +833,13 @@ export class Game {
 
   private updateAim(): void {
     if (!this.player) return;
+    if (this.cheatPanel?.style.display === 'flex') return;
+    if (this.viewMode === 'first-person') {
+      this.player.angle += this.input.state.lookDeltaX * 0.0035;
+      this.input.state.lookDeltaX = 0;
+      this.state.angle = this.player.angle;
+      return;
+    }
     const w = this.camera.screenToWorld(this.input.state.mouseX, this.input.state.mouseY);
     this.player.angle = Math.atan2(w.y - this.player.y, w.x - this.player.x);
     this.state.angle = this.player.angle;
@@ -971,8 +980,9 @@ export class Game {
         if (this.hudVisible()) {
           this.hud.update(this.buildHudData());
           this.hud.updateCrosshairPosition(
-            this.viewMode === 'first-person' ? this.app.screen.width / 2 : this.input.state.mouseX,
-            this.viewMode === 'first-person' ? this.app.screen.height / 2 : this.input.state.mouseY,
+            this.app.screen.width / 2,
+            this.app.screen.height / 2,
+            this.viewMode === 'first-person' && this.cheatPanel?.style.display !== 'flex' && phase !== 'PAUSED',
           );
         }
       }
@@ -1165,6 +1175,7 @@ export class Game {
     if (!this.cheatPanel) return;
     const show = this.cheatPanel.style.display === 'none';
     this.cheatPanel.style.display = show ? 'flex' : 'none';
+    this.input.state.lookDeltaX = 0;
     this.setCanvasCursor(this.state.phase !== 'COUNTDOWN' && this.state.phase !== 'PLAYING');
     if (show) this.syncCheatButtons();
   }

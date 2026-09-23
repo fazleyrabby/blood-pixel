@@ -34,6 +34,12 @@ export function updateMovement(world: World, input: InputSystem, dt: number): vo
     const angle = player.angle;
     dirX = forward * Math.cos(angle) - strafe * Math.sin(angle);
     dirY = forward * Math.sin(angle) + strafe * Math.cos(angle);
+  } else if (s.isometric) {
+    // Fixed camera yaw: D points toward +x/-y, S toward +x/+y.
+    const screenX = dirX;
+    const screenY = dirY;
+    dirX = (screenX + screenY) * Math.SQRT1_2;
+    dirY = (screenY - screenX) * Math.SQRT1_2;
   }
 
   // Knockback decays exponentially

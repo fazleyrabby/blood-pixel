@@ -336,9 +336,10 @@ export class HUD {
     document.head.appendChild(style);
   }
 
-  updateCrosshairPosition(mouseX: number, mouseY: number): void {
+  updateCrosshairPosition(mouseX: number, mouseY: number, visible: boolean): void {
     const el = document.getElementById('hud-crosshair');
     if (el) {
+      el.style.display = visible ? 'flex' : 'none';
       el.style.left = `${mouseX}px`;
       el.style.top = `${mouseY}px`;
     }

@@ -13,6 +13,7 @@ export interface InputState {
   right: boolean;
   mouseX: number;      // screen coordinates
   mouseY: number;
+  lookDeltaX: number;
   shootHeld: boolean;
   reloadPressed: boolean;
   pausePressed: boolean;
@@ -26,6 +27,7 @@ export interface InputState {
   cheatPanelPressed: boolean;
   viewPressed: boolean;
   firstPerson: boolean;
+  isometric: boolean;
   hybridPressed: boolean;
 }
 
@@ -33,6 +35,7 @@ export class InputSystem {
   readonly state: InputState = {
     up: false, down: false, left: false, right: false,
     mouseX: 0, mouseY: 0,
+    lookDeltaX: 0,
     shootHeld: false,
     reloadPressed: false,
     pausePressed: false,
@@ -43,6 +46,7 @@ export class InputSystem {
     cheatPanelPressed: false,
     viewPressed: false,
     firstPerson: false,
+    isometric: false,
     hybridPressed: false,
   };
 
@@ -98,12 +102,22 @@ export class InputSystem {
     this.state.shootHeld = false;
     this.state.wheelUp = false;
     this.state.wheelDown = false;
+    this.state.lookDeltaX = 0;
   }
 
   private _onKeyDown = (e: KeyboardEvent): void => {
-    if (e.key === 'Escape') { this.state.pausePressed = true; return; }
+    if (e.key === 'Escape') {
+      if (document.pointerLockElement) void document.exitPointerLock();
+      this.state.pausePressed = true;
+      return;
+    }
     if (e.key === '`') { this.state.debugToggle = true; return; }
-    if (e.key === 'F2') { e.preventDefault(); this.state.cheatPanelPressed = true; return; }
+    if (e.key === 'F2') {
+      e.preventDefault();
+      if (document.pointerLockElement) void document.exitPointerLock();
+      this.state.cheatPanelPressed = true;
+      return;
+    }
     if (e.key === 'm' || e.key === 'M') { this.state.mutePressed = true; }
     if (!this._gameActive) return;
     if (e.key === 'v' || e.key === 'V') {
@@ -111,6 +125,12 @@ export class InputSystem {
       if (!this._viewHeld && !e.repeat && now - this._lastViewToggle > 280) {
         this.state.viewPressed = true;
         this._lastViewToggle = now;
+        if (this.state.firstPerson) {
+          this.state.lookDeltaX = 0;
+          if (document.pointerLockElement) void document.exitPointerLock();
+        } else if (document.getElementById('cheat-panel')?.style.display !== 'flex') {
+          void document.getElementById('app')?.requestPointerLock?.().catch(() => {});
+        }
       }
       this._viewHeld = true;
       return;
@@ -144,6 +164,12 @@ export class InputSystem {
   };
 
   private _onMouseMove = (e: MouseEvent): void => {
+    if (this.state.firstPerson && this._gameActive) {
+      this.state.lookDeltaX += e.movementX;
+      this.state.mouseX = window.innerWidth / 2;
+      this.state.mouseY = window.innerHeight / 2;
+      return;
+    }
     this.state.mouseX = e.clientX;
     this.state.mouseY = e.clientY;
   };
@@ -152,6 +178,9 @@ export class InputSystem {
     // Ignore clicks on HTML UI (cheat panel, HUD buttons) so they don't fire.
     const target = e.target as HTMLElement | null;
     if (target && target.closest('button, input, select, textarea')) return;
+    if (this.state.firstPerson && this._gameActive && !document.pointerLockElement) {
+      void document.getElementById('app')?.requestPointerLock?.().catch(() => {});
+    }
     if (e.button === 0 && this._gameActive) this.state.shootHeld = true;
   };
 
@@ -167,6 +196,7 @@ export class InputSystem {
 
   private _onBlur = (): void => {
     this._clearGameInput();
+    if (document.pointerLockElement) void document.exitPointerLock();
     this._viewHeld = false;
     this._hybridHeld = false;
   };
