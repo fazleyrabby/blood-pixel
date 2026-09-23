@@ -12,7 +12,11 @@ export type ZombieType =
   | 'crawler'
   | 'armored'
   | 'exploder'
-  | 'abomination';
+  | 'abomination'
+  | 'grok'
+  | 'claude'
+  | 'codex'
+  | 'muse';
 
 export interface ZombieDef {
   type: ZombieType;
@@ -151,6 +155,54 @@ export const ZOMBIES: Record<ZombieType, ZombieDef> = {
     summonIntervalSec: 6,
     summonType: 'crawler',
     summonCount: 3,
+  },
+  grok: {
+    type: 'grok',
+    name: 'GROK',
+    hp: 800,
+    speed: 40,
+    damage: 25,
+    attackRangeUnits: 24,
+    attackCooldownSec: 1.0,
+    xpReward: 150,
+    collisionRadius: 18,
+    knockbackForce: 100,
+  },
+  claude: {
+    type: 'claude',
+    name: 'CLAUDEBEAN',
+    hp: 700,
+    speed: 45,
+    damage: 20,
+    attackRangeUnits: 24,
+    attackCooldownSec: 1.0,
+    xpReward: 150,
+    collisionRadius: 16,
+    knockbackForce: 80,
+  },
+  codex: {
+    type: 'codex',
+    name: 'CODEX',
+    hp: 900,
+    speed: 35,
+    damage: 30,
+    attackRangeUnits: 26,
+    attackCooldownSec: 1.2,
+    xpReward: 150,
+    collisionRadius: 20,
+    knockbackForce: 120,
+  },
+  muse: {
+    type: 'muse',
+    name: 'MUSE',
+    hp: 1200,
+    speed: 60,
+    damage: 15,
+    attackRangeUnits: 30,
+    attackCooldownSec: 0.5,
+    xpReward: 300,
+    collisionRadius: 16,
+    knockbackForce: 50,
   },
 };
 

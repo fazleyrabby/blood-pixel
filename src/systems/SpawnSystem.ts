@@ -128,11 +128,23 @@ function spawnZombieAt(
 function pickType(wave: MissionWave): ZombieType {
   const total = wave.zombieTypes.reduce((s, t) => s + t.weight, 0);
   let roll = Math.random() * total;
+  let picked: ZombieType = wave.zombieTypes[wave.zombieTypes.length - 1].type;
   for (const t of wave.zombieTypes) {
     roll -= t.weight;
-    if (roll <= 0) return t.type;
+    if (roll <= 0) {
+      picked = t.type;
+      break;
+    }
   }
-  return wave.zombieTypes[wave.zombieTypes.length - 1].type;
+
+  // 2% chance for an easter egg mascot, but never replace a boss
+  const def = ZOMBIES[picked];
+  if (!def.boss && Math.random() < 0.02) {
+    const mascots: ZombieType[] = ['grok', 'claude', 'codex', 'muse'];
+    return mascots[Math.floor(Math.random() * mascots.length)];
+  }
+
+  return picked;
 }
 
 function pickZone(world: World, zoneIds: string[]): SpawnZone | null {

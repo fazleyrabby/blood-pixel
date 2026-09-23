@@ -24,6 +24,8 @@ export interface GameState {
 
   /** Debug/cheat: player takes no damage. Runtime-only, never persisted. */
   godMode: boolean;
+  /** Debug/cheat: auto-spawn and auto-kill enemies mode. */
+  testSimulationMode: boolean;
 
   // ── Player runtime stats ──
   hp: number;
@@ -119,6 +121,7 @@ export function createGameState(): GameState {
   return {
     phase: 'BOOT',
     godMode: false,
+    testSimulationMode: false,
     hp: 100,
     maxHp: 100,
     speed: 150,

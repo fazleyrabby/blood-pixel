@@ -88,7 +88,7 @@ export class PixiSceneRenderer implements SceneRenderer {
   resize(_width: number, _height: number): void { /* Pixi Application owns the canvas size. */ }
   update(dt: number, world: World | null): void {
     if (world) {
-      this.characters.update(dt, world.player, world.zombies);
+      this.characters.update(dt, world.player, world.zombies, world.state.activeWeapon);
       for (const p of world.projectiles) this.characters.updateProjectilePosition(p);
       for (const p of world.pickups) this.characters.updatePickupPosition(p);
       this.effects.update(dt);

@@ -81,6 +81,7 @@ export class Game {
   private devOverlay: HTMLElement | null = null;
   private cheatPanel: HTMLElement | null = null;
   private cheatGodBtn: HTMLButtonElement | null = null;
+  private cheatTestSimBtn: HTMLButtonElement | null = null;
 
   private world: World | null = null;
   private player: PlayerEntity | null = null;
@@ -627,18 +628,18 @@ export class Game {
         }
       },
       onZombieHit: (x, y) => {
-        this.scene.spawnBlood(x, y, 4);
+        this.scene.spawnBlood(x, y - 24 / TILT_Y_SCALE, 6);
         this.audio.play('hit');
       },
       onPlayerHurt: () => {
         this.addShake(9, 0.3);
         this.audio.play('hurt');
         this.hud.flashDamage();
-        if (this.player) this.scene.spawnBlood(this.player.x, this.player.y, 9);
+        if (this.player) this.scene.spawnBlood(this.player.x, this.player.y - 24 / TILT_Y_SCALE, 9);
         this.requestHitStop(0.06);
       },
       onZombieKilled: (z) => {
-        this.scene.spawnBlood(z.x, z.y, 13, 130, 190);
+        this.scene.spawnBlood(z.x, z.y - 20 / TILT_Y_SCALE, 14, 130, 190);
         this.audio.play('kill');
         this.addShake(1.4, 0.1);
         this.requestHitStop(0.03);
@@ -848,6 +849,22 @@ export class Game {
     if (player.spitterInvulnTimer > 0) player.spitterInvulnTimer -= dt;
 
     this.updateAim();
+    if (state.testSimulationMode && world.zombies.length > 0) {
+      let nearest = null;
+      let minDist = Infinity;
+      for (const z of world.zombies) {
+        if (z.state !== 'active' && z.state !== 'spawning') continue;
+        const dist = Math.hypot(z.x - player.x, z.y - player.y);
+        if (dist < minDist) {
+          minDist = dist;
+          nearest = z;
+        }
+      }
+      if (nearest) {
+        player.angle = Math.atan2(nearest.y - player.y, nearest.x - player.x);
+        state.angle = player.angle;
+      }
+    }
 
     // ── Weapon switching ──
     if (s.weapon1) switchWeapon(world, 0);
@@ -858,6 +875,10 @@ export class Game {
     if (s.reloadPressed) startReload(world);
 
     // ── Firing ──
+    if (state.testSimulationMode) {
+      s.shootHeld = true;
+      this.fireRequest = FIRE_REQUEST_WINDOW;
+    }
     const def = WEAPONS[player.activeWeapon];
     const edge = s.shootHeld && !this.prevShootHeld;
     this.prevShootHeld = s.shootHeld;
@@ -1109,6 +1130,7 @@ export class Game {
       'background:rgba(0,0,0,0.85);border:1px solid #39ff14;padding:10px;min-width:190px;';
     el.innerHTML =
       '<div style="color:#39ff14;letter-spacing:2px;font-size:12px;margin-bottom:4px">CHEATS [F2]</div>' +
+      '<button class="cheat-btn" id="cheat-testsim">TEST SIM: OFF</button>' +
       '<button class="cheat-btn" id="cheat-god">GOD MODE: OFF</button>' +
       '<button class="cheat-btn" id="cheat-heal">HEAL</button>' +
       '<button class="cheat-btn" id="cheat-ammo">FULL AMMO</button>' +
@@ -1118,6 +1140,7 @@ export class Game {
       '<button class="cheat-btn" id="cheat-missions">UNLOCK MISSIONS</button>' +
       '<button class="cheat-btn" id="cheat-killall">KILL ALL</button>' +
       '<button class="cheat-btn" id="cheat-spawnboss">SPAWN BOSS</button>' +
+      '<button class="cheat-btn" id="cheat-spawnmascots">SPAWN MASCOTS</button>' +
       '<button class="cheat-btn" id="cheat-spawnwave">SPAWN MIXED WAVE</button>' +
       '<button class="cheat-btn" id="cheat-stress">STRESS +100</button>' +
       '<button class="cheat-btn" id="cheat-clear">CLEAR ENEMIES</button>' +
@@ -1135,7 +1158,17 @@ export class Game {
     document.getElementById('ui-layer')!.appendChild(el);
     this.cheatPanel = el;
     this.cheatGodBtn = el.querySelector<HTMLButtonElement>('#cheat-god');
+    this.cheatTestSimBtn = el.querySelector<HTMLButtonElement>('#cheat-testsim');
 
+    el.querySelector('#cheat-testsim')!.addEventListener('click', () => {
+      this.state.testSimulationMode = !this.state.testSimulationMode;
+      if (this.state.testSimulationMode) {
+        this.state.godMode = true;
+        const types = Object.keys(ZOMBIES) as ZombieType[];
+        for (const t of types) this.cheatSpawn(t, 1);
+      }
+      this.syncCheatButtons();
+    });
     el.querySelector('#cheat-god')!.addEventListener('click', () => {
       this.state.godMode = !this.state.godMode;
       this.syncCheatButtons();
@@ -1148,6 +1181,12 @@ export class Game {
     el.querySelector('#cheat-missions')!.addEventListener('click', () => this.cheatUnlockMissions());
     el.querySelector('#cheat-killall')!.addEventListener('click', () => this.killAll());
     el.querySelector('#cheat-spawnboss')!.addEventListener('click', () => this.cheatSpawn('abomination', 1));
+    el.querySelector('#cheat-spawnmascots')!.addEventListener('click', () => {
+      this.cheatSpawn('grok', 1);
+      this.cheatSpawn('claude', 1);
+      this.cheatSpawn('codex', 1);
+      this.cheatSpawn('muse', 1);
+    });
     el.querySelector('#cheat-spawnwave')!.addEventListener('click', () => {
       this.cheatSpawn('crawler', 4);
       this.cheatSpawn('armored', 2);
@@ -1172,6 +1211,9 @@ export class Game {
   private syncCheatButtons(): void {
     if (this.cheatGodBtn) {
       this.cheatGodBtn.textContent = `GOD MODE: ${this.state.godMode ? 'ON' : 'OFF'}`;
+    }
+    if (this.cheatTestSimBtn) {
+      this.cheatTestSimBtn.textContent = `TEST SIM: ${this.state.testSimulationMode ? 'ON' : 'OFF'}`;
     }
   }
 
