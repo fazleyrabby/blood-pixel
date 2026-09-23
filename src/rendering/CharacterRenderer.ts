@@ -237,7 +237,8 @@ export class CharacterRenderer {
       this.playerSprite.scale.set(ds, point ? ds : ds / this.tilt);
       this.playerSprite.x = (point?.x ?? player.x) - (this.playerSprite.glyphWidth * ds) / 2;
       this.playerSprite.y = point ? point.y - this.playerSprite.glyphHeight * ds :
-        player.y - (this.playerSprite.glyphHeight * this.playerSprite.scale.y) / 2;
+        player.y - this.playerSprite.glyphHeight * this.playerSprite.scale.y;
+      this.playerSprite.setFacing(player.angle);
       this.playerSprite.zIndex = depthSortKey(player.y);
 
       this._placeShadow(
@@ -267,7 +268,7 @@ export class CharacterRenderer {
       const ds = (point ? point.scale : depthScale(zombie.y, this.worldH)) * ZOMBIE_SCALE * (TYPE_SCALE[zombie.type] ?? 1);
       spr.scale.set(ds, point ? ds : ds / this.tilt);
       spr.x = (point?.x ?? zombie.x) - (spr.glyphWidth * ds) / 2;
-      spr.y = point ? point.y - spr.glyphHeight * ds : zombie.y - (spr.glyphHeight * spr.scale.y) / 2;
+      spr.y = point ? point.y - spr.glyphHeight * ds : zombie.y - spr.glyphHeight * spr.scale.y;
       spr.zIndex = depthSortKey(zombie.y);
       spr.alpha = zombie.state === 'spawning'
         ? Math.min(1, 1 - zombie.spawnTimer / 0.3)

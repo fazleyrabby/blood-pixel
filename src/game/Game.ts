@@ -37,7 +37,7 @@ import {
 import { createPlayer, type PlayerEntity } from '../entities/Player';
 import { createZombie, type ZombieEntity } from '../entities/Zombie';
 import { ZOMBIES, type ZombieType } from '../config/zombies';
-import { createSceneRenderer } from '../rendering/HybridSceneRenderer';
+import { createSceneRenderer } from '../rendering/PixiSceneRenderer';
 import type { SceneRenderer } from '../rendering/SceneRenderer';
 import { TILT_Y_SCALE } from '../rendering/depth';
 import { AudioSystem } from '../audio/AudioSystem';
@@ -164,7 +164,7 @@ export class Game {
     const s = this.state.settings;
     this.camera.setSmoothing(s.reducedMotion ? 0 : 8);
     this.camera.setShakeEnabled(s.screenShake && !s.reducedMotion);
-    const tilt = s.depthTilt && !s.reducedMotion ? TILT_Y_SCALE : 1;
+    const tilt = 1;
     this.camera.setYScale(tilt);
     this.camera.setPerspectiveFocal(tilt === 1 ? null : 1800);
     // This perspective camera faces world north; its screen axes match world X/Y.

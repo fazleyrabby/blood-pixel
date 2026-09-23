@@ -33,6 +33,8 @@ export class ArenaRenderer {
 
     this.ground.rect(0, 0, W, H);
     this.ground.fill({ color: arena.id === 'forest' ? 0x46534a : 0x3b4743 });
+    // Soft, irregular terrain patches keep the flat world readable without a
+    // technical grid. They are static geometry, so no per-frame drawing work.
     for (let i = 0; i < 115; i++) {
       const x = (Math.sin(i * 127.1) * 43758.5 % 1 + 1) % 1 * W;
       const y = (Math.sin(i * 91.7 + 18) * 43758.5 % 1 + 1) % 1 * H;
@@ -41,7 +43,7 @@ export class ArenaRenderer {
       this.ground.fill({ color: [0x536055, 0x5e5b4c, 0x303d3b, 0x697064][i % 4], alpha: 0.72 });
     }
 
-    // ── Obstacles (drawn as blocks with apparent height) ──
+    // ── Obstacles (flat 2D silhouettes with small shadow offsets) ──
     for (const obs of arena.obstacles) {
       const isTree = obs.label?.startsWith('tree');
       const isRock = obs.label?.startsWith('rock');
@@ -51,13 +53,13 @@ export class ArenaRenderer {
       if (isTree) {
         this._drawTree(obs.x + obs.width / 2, obs.y + obs.height / 2, arena.wallColor);
       } else if (isRock) {
-        this._drawBlock(obs.x, obs.y, obs.width, obs.height, 0x77796e, 16);
+        this._drawFlatRuin(obs.x, obs.y, obs.width, obs.height, 0x77796e);
       } else if (isPillar) {
-        this._drawBlock(obs.x, obs.y, obs.width, obs.height, 0x626e69, 36);
+        this._drawFlatRuin(obs.x, obs.y, obs.width, obs.height, 0x626e69);
       } else if (isContainer) {
-        this._drawBlock(obs.x, obs.y, obs.width, obs.height, 0x64716b, 30);
+        this._drawFlatRuin(obs.x, obs.y, obs.width, obs.height, 0x64716b);
       } else {
-        this._drawBlock(obs.x, obs.y, obs.width, obs.height, 0x77837c, 28, obs.width > 80);
+        this._drawFlatRuin(obs.x, obs.y, obs.width, obs.height, 0x77837c, obs.width > 80);
       }
     }
   }
@@ -201,6 +203,21 @@ export class ArenaRenderer {
       for (let c = 0; c < cols; c++) {
         this.walls.rect(x + 15 + c * 35, topY + h + 6, winW, winH);
         this.walls.fill({ color: 0x293633, alpha: 0.85 });
+      }
+    }
+  }
+
+  private _drawFlatRuin(x: number, y: number, w: number, h: number, color: number, windows = false): void {
+    this.walls.roundRect(x + 7, y + 9, w, h, 3).fill({ color: 0x182320, alpha: 0.5 });
+    this.walls.roundRect(x, y, w, h, 3).fill({ color });
+    this.walls.rect(x + 4, y + 4, w - 8, 5).fill({ color: shade(color, 1.35), alpha: 0.8 });
+    this.walls.moveTo(x + 8, y + h * 0.72).lineTo(x + w * 0.42, y + h * 0.4)
+      .lineTo(x + w * 0.72, y + h * 0.7).lineTo(x + w - 8, y + h * 0.3);
+    this.walls.stroke({ color: shade(color, 0.55), width: 3, alpha: 0.75 });
+    if (windows) {
+      for (let cx = x + 18; cx < x + w - 14; cx += 34) {
+        this.walls.roundRect(cx, y + h * 0.3, 16, 12, 2).fill({ color: 0x263835, alpha: 0.9 });
+        this.walls.rect(cx + 2, y + h * 0.3 + 2, 12, 2).fill({ color: 0xb18f55, alpha: 0.45 });
       }
     }
   }

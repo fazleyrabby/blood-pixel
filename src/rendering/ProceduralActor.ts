@@ -14,13 +14,15 @@ export class ProceduralActor extends Container {
   private readonly leftArm = new Graphics();
   private readonly rightArm = new Graphics();
   private readonly flash = new Graphics();
+  private readonly weapon = new Graphics();
   private readonly normalTint: number;
 
   constructor(kind: ActorKind, normalTint: number) {
     super();
     this.normalTint = normalTint;
     this.draw(kind);
-    this.addChild(this.leftLeg, this.rightLeg, this.art, this.leftArm, this.rightArm, this.flash);
+    this.addChild(this.leftLeg, this.rightLeg, this.art, this.leftArm, this.rightArm, this.weapon, this.flash);
+    if (kind !== 'player') this.weapon.visible = false;
     this.flash.visible = false;
   }
 
@@ -36,6 +38,10 @@ export class ProceduralActor extends Container {
   setTint(tint: number): void {
     this.flash.visible = tint === 0xffffff;
     this.art.tint = tint === this.normalTint || tint === 0xffffff ? 0xffffff : tint;
+  }
+
+  setFacing(angle: number): void {
+    this.weapon.rotation = angle;
   }
 
   private draw(kind: ActorKind): void {
@@ -67,10 +73,12 @@ export class ProceduralActor extends Container {
         fill(this.art, 18, 16, 28, 8, 0x58d5df);
         fill(this.art, 21, 15, 22, 3, 0x2b4246);
         fill(this.art, 25, 47, 14, 6, 0xda9455);
-        // Rifle crosses both hands and projects in front of the body.
-        fill(this.art, 27, 43, 10, 24, 0x303939);
-        fill(this.art, 29, 54, 6, 20, 0x899897);
-        fill(this.art, 31, 70, 2, 6, 0xeeb76c);
+        // Weapon is a separate, centered layer so its muzzle follows aim.
+        fill(this.weapon, 31, 43, 27, 8, 0x303939);
+        fill(this.weapon, 49, 44, 19, 6, 0x899897);
+        fill(this.weapon, 66, 45, 8, 3, 0xeeb76c);
+        this.weapon.pivot.set(32, 47);
+        this.weapon.position.set(32, 47);
         break;
       case 'walker':
         legs(0x55574a);
