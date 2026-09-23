@@ -96,7 +96,6 @@ export class Game {
   private fpsEma = 60;
   private overlayClock = 0;
   private frameDeltas: number[] = [];
-  private viewMode: 'overhead' | 'first-person' = 'overhead';
   private actorStyle: 'voxel' | 'billboard' = 'voxel';
 
   constructor(app: Application) {
@@ -789,13 +788,6 @@ export class Game {
     if (this.input.state.mutePressed) this.audio.toggleMute();
     if (this.input.state.debugToggle) this.toggleDevOverlay();
     if (this.input.state.cheatPanelPressed) this.toggleCheatPanel();
-    if (this.input.state.viewPressed) {
-      this.viewMode = this.viewMode === 'overhead' ? 'first-person' : 'overhead';
-      this.input.state.firstPerson = this.viewMode === 'first-person';
-      this.scene.setViewMode(this.viewMode);
-      if (this.viewMode === 'overhead') this.camera.setMapping(null, null);
-      this.hud.showBanner(this.viewMode === 'first-person' ? '2D AIM · V TO SWITCH' : '2D WORLD · V TO SWITCH', '#e6d3af');
-    }
     if (this.input.state.hybridPressed) {
       this.actorStyle = this.actorStyle === 'voxel' ? 'billboard' : 'voxel';
       this.scene.setActorStyle(this.actorStyle);
@@ -837,12 +829,6 @@ export class Game {
   private updateAim(): void {
     if (!this.player) return;
     if (this.cheatPanel?.style.display === 'flex') return;
-    if (this.viewMode === 'first-person') {
-      this.player.angle += this.input.state.lookDeltaX * 0.0035;
-      this.input.state.lookDeltaX = 0;
-      this.state.angle = this.player.angle;
-      return;
-    }
     const w = this.camera.screenToWorld(this.input.state.mouseX, this.input.state.mouseY);
     this.player.angle = Math.atan2(w.y - this.player.y, w.x - this.player.x);
     this.state.angle = this.player.angle;
@@ -983,9 +969,9 @@ export class Game {
         if (this.hudVisible()) {
           this.hud.update(this.buildHudData());
           this.hud.updateCrosshairPosition(
-            this.app.screen.width / 2,
-            this.app.screen.height / 2,
-            this.viewMode === 'first-person' && this.cheatPanel?.style.display !== 'flex' && phase !== 'PAUSED',
+            this.input.state.mouseX,
+            this.input.state.mouseY,
+            this.cheatPanel?.style.display !== 'flex' && phase !== 'PAUSED',
           );
         }
       }

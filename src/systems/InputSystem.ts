@@ -51,9 +51,7 @@ export class InputSystem {
   };
 
   private _gameActive = false;
-  private _viewHeld = false;
   private _hybridHeld = false;
-  private _lastViewToggle = -Infinity;
 
   constructor() {
     window.addEventListener('keydown', this._onKeyDown);
@@ -63,6 +61,8 @@ export class InputSystem {
     window.addEventListener('mouseup', this._onMouseUp);
     window.addEventListener('wheel', this._onWheel, { passive: true });
     window.addEventListener('blur', this._onBlur);
+    this.state.mouseX = window.innerWidth / 2;
+    this.state.mouseY = window.innerHeight / 2;
   }
 
   /** Call to allow/disallow gameplay input */
@@ -120,21 +120,6 @@ export class InputSystem {
     }
     if (e.key === 'm' || e.key === 'M') { this.state.mutePressed = true; }
     if (!this._gameActive) return;
-    if (e.key === 'v' || e.key === 'V') {
-      const now = performance.now();
-      if (!this._viewHeld && !e.repeat && now - this._lastViewToggle > 280) {
-        this.state.viewPressed = true;
-        this._lastViewToggle = now;
-        if (this.state.firstPerson) {
-          this.state.lookDeltaX = 0;
-          if (document.pointerLockElement) void document.exitPointerLock();
-        } else if (document.getElementById('cheat-panel')?.style.display !== 'flex') {
-          void document.getElementById('app')?.requestPointerLock?.().catch(() => {});
-        }
-      }
-      this._viewHeld = true;
-      return;
-    }
     if (e.key === 'h' || e.key === 'H') {
       if (!this._hybridHeld) this.state.hybridPressed = true;
       this._hybridHeld = true;
@@ -153,7 +138,6 @@ export class InputSystem {
   };
 
   private _onKeyUp = (e: KeyboardEvent): void => {
-    if (e.key === 'v' || e.key === 'V') this._viewHeld = false;
     if (e.key === 'h' || e.key === 'H') this._hybridHeld = false;
     switch (e.key.toLowerCase()) {
       case 'w': case 'arrowup': this.state.up = false; break;
@@ -164,12 +148,6 @@ export class InputSystem {
   };
 
   private _onMouseMove = (e: MouseEvent): void => {
-    if (this.state.firstPerson && this._gameActive) {
-      this.state.lookDeltaX += e.movementX;
-      this.state.mouseX = window.innerWidth / 2;
-      this.state.mouseY = window.innerHeight / 2;
-      return;
-    }
     this.state.mouseX = e.clientX;
     this.state.mouseY = e.clientY;
   };
@@ -178,9 +156,6 @@ export class InputSystem {
     // Ignore clicks on HTML UI (cheat panel, HUD buttons) so they don't fire.
     const target = e.target as HTMLElement | null;
     if (target && target.closest('button, input, select, textarea')) return;
-    if (this.state.firstPerson && this._gameActive && !document.pointerLockElement) {
-      void document.getElementById('app')?.requestPointerLock?.().catch(() => {});
-    }
     if (e.button === 0 && this._gameActive) this.state.shootHeld = true;
   };
 
@@ -197,7 +172,6 @@ export class InputSystem {
   private _onBlur = (): void => {
     this._clearGameInput();
     if (document.pointerLockElement) void document.exitPointerLock();
-    this._viewHeld = false;
     this._hybridHeld = false;
   };
 }

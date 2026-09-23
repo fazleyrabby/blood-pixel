@@ -323,10 +323,10 @@ export class HUD {
 
       .hud-crosshair {
         position: absolute;
-        width: 16px; height: 16px;
-        display: flex; align-items: center; justify-content: center;
-        color: rgba(57, 255, 20, 0.7);
-        font-size: 18px;
+        width: 7px; height: 7px;
+        border-radius: 50%;
+        background: #f6e8c8;
+        box-shadow: 0 0 0 2px rgba(23, 61, 98, 0.85), 0 0 10px rgba(93, 246, 228, 0.95);
         pointer-events: none;
         transform: translate(-50%, -50%);
         /* Position updated via JS to follow mouse */
